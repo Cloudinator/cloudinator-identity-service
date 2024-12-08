@@ -2,7 +2,7 @@ spring:
   application:
     name: identity
   datasource:
-    url: jdbc:postgresql://34.124.129.117:3242/fastapi
+    url: jdbc:postgresql://34.124.129.117:3242/dev-cloudinator
     username: springdb
     password: ITE2@2024
   jpa:

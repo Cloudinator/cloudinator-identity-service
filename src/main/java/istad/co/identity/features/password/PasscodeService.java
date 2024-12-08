@@ -8,7 +8,7 @@ import istad.co.identity.features.password.dto.PasscodeVerifyResendRequest;
 /**
  * Passcode interface which contains methods to manage passcode when forgot password
  *
- * @author Pov soknem
+ * @author Ing Muyleang
  * @since 1.0 (2024)
  */
 public interface PasscodeService {
@@ -17,7 +17,7 @@ public interface PasscodeService {
      * verify passcode(OTG)
      *
      * @param passcodeVerifyRequest is the requirement information for verified passcode
-     * @author Pov soknem
+     * @author Ing Muyleang
      * @since 1.0 (2024)
      */
     void verify(PasscodeVerifyRequest passcodeVerifyRequest);
@@ -26,7 +26,7 @@ public interface PasscodeService {
      * resend passcode
      *
      * @param passcodeVerifyResendRequest is the requirement information for resent the passcode
-     * @author Pov soknem
+     * @author Ing Muyleang
      * @since 1.0 (2024)
      */
 
@@ -36,7 +36,7 @@ public interface PasscodeService {
      * generate and send OTG passcode to user
      *
      * @param user is the object of user to send passcode
-     * @author Pov soknem
+     * @author Ing Muyleang
      * @since 1.0 (2024)
      */
     void generate(User user);
@@ -47,7 +47,7 @@ public interface PasscodeService {
      * @param token is the token to validate with user
      * @param user  is the user that need to validate with token
      * @return {@link Boolean}
-     * @author Pov soknem
+     * @author Ing Muyleang
      * @since 1.0 (2024)
      */
 
@@ -58,7 +58,7 @@ public interface PasscodeService {
      *
      * @param token is the token to check
      * @return {@link Boolean}
-     * @author Pov soknem
+     * @author Ing Muyleang
      * @since 1.0 (2024)
      */
     boolean isExpired(Passcode token);

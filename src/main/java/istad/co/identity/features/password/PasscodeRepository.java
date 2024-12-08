@@ -1,4 +1,4 @@
-package istad.co.identity.features.password;//package com.khotixs.identity_service.feature.forgotpasswordreset;
+package istad.co.identity.features.password;
 
 import istad.co.identity.domain.Passcode;
 import istad.co.identity.domain.User;
