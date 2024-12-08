@@ -1,7 +1,8 @@
 package istad.co.identity.features.auth;
 
 import istad.co.identity.base.BasedMessage;
-import istad.co.identity.features.auth.dto.ChangePasswordRequest;
+import istad.co.identity.features.auth.dto.ChangeForgotPasswordRequest;
+import istad.co.identity.features.auth.dto.ForgotPasswordRequest;
 import istad.co.identity.features.auth.dto.LoginRequest;
 import istad.co.identity.features.auth.dto.RegisterRequest;
 import istad.co.identity.features.user.dto.UserResponse;
@@ -26,6 +27,15 @@ public class AuthController {
     ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         return ResponseEntity.ok(authService.register(registerRequest));
     }
+//    @PostMapping("/change-forgot-password")
+//    public void changeForgotPassword(@RequestBody ChangeForgotPasswordRequest changeForgotPasswordRequest){
+//        authService.changePassword(changeForgotPasswordRequest);
+//    }
+    @PostMapping("/forgot-password")
+    public void forgotPassword(@RequestBody ForgotPasswordRequest forgotPasswordRequest){
+        authService.forgotPassword(forgotPasswordRequest);
+    }
+
 
     @PostMapping("/login")
     ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
@@ -42,13 +52,13 @@ public class AuthController {
         return authService.findMe(authentication);
     }
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_USER', 'SCOPE_profile')")
-    @PutMapping("/me/change-password")
-    BasedMessage changePassword(Authentication authentication,
-                                @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
-        authService.changePassword(authentication, changePasswordRequest);
-        return new BasedMessage("Password has been changed");
-    }
+//    @PreAuthorize("hasAnyAuthority('SCOPE_USER', 'SCOPE_profile')")
+//    @PutMapping("/me/change-password")
+//    BasedMessage changePassword(Authentication authentication,
+//                                @Valid @RequestBody ChangeForgotPasswordRequest changePasswordRequest) {
+//        authService.changePassword(changePasswordRequest);
+//        return new BasedMessage("Password has been changed");
+//    }
 
 
 }

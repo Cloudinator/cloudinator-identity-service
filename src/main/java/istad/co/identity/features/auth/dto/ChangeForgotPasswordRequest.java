@@ -3,7 +3,7 @@ package istad.co.identity.features.auth.dto;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
-public record ChangePasswordRequest(
+public record ChangeForgotPasswordRequest(
         @NotEmpty(message = "Old password is required")
         @Size(min = 6, message = "Old password must be at least 5 characters long")
         @Size(max = 32, message = "Old password can not be longer than 32 characters")

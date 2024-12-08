@@ -1,11 +1,15 @@
 package istad.co.identity.features.auth;
 
+import istad.co.identity.domain.Passcode;
 import istad.co.identity.domain.User;
-import istad.co.identity.features.auth.dto.ChangePasswordRequest;
+import istad.co.identity.features.auth.dto.ChangeForgotPasswordRequest;
 
+import istad.co.identity.features.auth.dto.ForgotPasswordRequest;
 import istad.co.identity.features.auth.dto.LoginRequest;
 import istad.co.identity.features.auth.dto.RegisterRequest;
 import istad.co.identity.features.emailverification.EmailVerificationTokenService;
+import istad.co.identity.features.password.PasscodeRepository;
+import istad.co.identity.features.password.PasscodeService;
 import istad.co.identity.features.user.UserRepository;
 import istad.co.identity.features.user.UserService;
 import istad.co.identity.features.user.dto.UserCreateRequest;
@@ -28,10 +32,12 @@ import org.springframework.web.server.ResponseStatusException;
 @Slf4j
 public class AuthServiceImpl implements AuthService{
 
+    private final PasswordEncoder passwordEncoder;
+    private final PasscodeRepository passcodeRepository;
+    private final PasscodeService passcodeService;
     private final UserRepository userRepository;
     private final UserService userService;
     private final UserMapper userMapper;
-    private final PasswordEncoder passwordEncoder;
     private final JavaMailSender javaMailSender;
     private final EmailVerificationTokenService emailVerificationTokenService;
 
@@ -57,22 +63,23 @@ public class AuthServiceImpl implements AuthService{
         return userService.findByUsername(authentication.getName());
     }
 
-    @Transactional
-    @Override
-    public void changePassword(Authentication authentication, ChangePasswordRequest changePasswordRequest) {
-
-        isNotAuthenticated(authentication);
-
-        userService.checkForPasswords(changePasswordRequest.password(), changePasswordRequest.confirmedPassword());
-        userService.checkForOldPassword(authentication.getName(), changePasswordRequest.oldPassword());
-
-        // retrieve user by username from db
-        User user = userRepository.findByUsernameAndIsEnabledTrue(authentication.getName())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User has not been found"));
-
-        user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
-        userRepository.save(user);
-    }
+//    @Override
+//    public void changePassword(Authentication authentication, ChangePasswordRequest changePasswordRequest) {
+//
+//        userService.isNotAuthenticated(authentication);
+//
+//        userService.checkConfirmPasswords(changePasswordRequest.password(), changePasswordRequest.confirmedPassword());
+//
+//        userService.checkForOldPassword(authentication.getName(), changePasswordRequest.oldPassword());
+//
+//        // retrieve user by username from db
+//        User user = userRepository.findByUsernameAndIsEnabledTrue(authentication.getName())
+//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User has not been found"));
+//
+//        user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
+//        userRepository.save(user);
+//
+//    }
 
     @Override
     public void isNotAuthenticated(Authentication authentication) {
@@ -82,7 +89,21 @@ public class AuthServiceImpl implements AuthService{
         }
 
     }
+    // TODO forget Password
+    @Override
+    public void forgotPassword(ForgotPasswordRequest forgotPasswordRequest) {
 
+        User user  = userRepository.findByUsernameAndIsEnabledTrue(forgotPasswordRequest.username()).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,String.format("user not found")));
+
+        Passcode foundToken = passcodeRepository.findByUser(user);
+
+        if(foundToken!=null){
+            passcodeRepository.deleteByUser(user);
+        }
+
+        passcodeService.generate(user);
+
+    }
     @Override
     public UserResponse login(LoginRequest loginRequest) {
         User user = userRepository.findByUsername(loginRequest.username())

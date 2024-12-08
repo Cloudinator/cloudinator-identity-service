@@ -30,6 +30,7 @@ public class UserController {
         userService.createNewUser(userCreateRequest);
     }
 
+
 //    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
     @PutMapping("/{username}/reset-password")
     UserPasswordResetResponse resetPassword(@PathVariable String username) {
