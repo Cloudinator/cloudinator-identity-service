@@ -25,9 +25,4 @@ public class SubWorkspace {
     @ManyToOne
     @JoinColumn(name = "workspace_id", nullable = false)
     private WorkSpace workspace;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
 }

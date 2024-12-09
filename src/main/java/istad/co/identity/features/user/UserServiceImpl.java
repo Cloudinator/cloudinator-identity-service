@@ -40,6 +40,8 @@ public class UserServiceImpl implements UserService{
     private final UserAuthorityRepository userAuthorityRepository;
     private final EmailVerificationTokenService emailVerificationTokenService;
 
+    public final GitLabServiceFein gitLabServiceFein;
+
     @Override
     public void createNewUser(UserCreateRequest userCreateRequest) {
 
@@ -86,6 +88,8 @@ public class UserServiceImpl implements UserService{
         }
 
         userAuthorityRepository.saveAll(user.getUserAuthorities());
+
+        gitLabServiceFein.createUser(userCreateRequest.username() , userCreateRequest.email(), userCreateRequest.password());
 
         emailVerificationTokenService.generate(user);
     }

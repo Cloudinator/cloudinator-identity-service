@@ -46,7 +46,7 @@ public class RegisterController {
 
         try {
             userService.createNewUser(userCreateRequest);
-//            gitLabServiceFein.createUser(userCreateRequest.username() , userCreateRequest.email(), userCreateRequest.password());
+
             redirectAttributes.addFlashAttribute("success", "Registration successful! Please check your email to verify your account.");
             return "redirect:/verify-email?username=" + URLEncoder.encode(userCreateRequest.username(), StandardCharsets.UTF_8);
         } catch (ResponseStatusException e) {

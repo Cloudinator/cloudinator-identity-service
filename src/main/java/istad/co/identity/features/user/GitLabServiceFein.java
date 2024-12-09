@@ -9,6 +9,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface GitLabServiceFein {
 
     @PostMapping("/api/v1/gitlab/create-user")
-    public void createUser(@RequestParam String username, @RequestParam String password, @RequestParam String email);
+    public void createUser(@RequestParam String username,@RequestParam String email, @RequestParam String password);
 
 }

@@ -25,7 +25,9 @@ public class UserController {
     @PostMapping
     void createNew(@Valid @RequestBody UserCreateRequest userCreateRequest) {
 
-        gitLabServiceFein.createUser(userCreateRequest.username() , userCreateRequest.email(), userCreateRequest.password());
+
+
+//        gitLabServiceFein.createUser(userCreateRequest.username() , userCreateRequest.email(), userCreateRequest.password());
 
         userService.createNewUser(userCreateRequest);
     }
