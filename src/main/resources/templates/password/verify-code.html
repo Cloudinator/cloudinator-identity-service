@@ -46,17 +46,16 @@
             <form id="verify-form" class="space-y-6">
                 <input type="hidden" id="username" th:value="${username}">
 
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Verification Code</label>
-                    <input
-                            type="text"
-                            id="token"
-                            name="token"
-                            placeholder="Enter verification code"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                            required
-                            maxlength="6">
+                <!-- OTP Input -->
+                <div class="flex justify-between gap-2">
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
                 </div>
+                <input type="hidden" id="token" name="token">
 
                 <button type="submit"
                         id="submit-btn"
@@ -71,8 +70,12 @@
                 <button type="button"
                         id="resend-btn"
                         onclick="resendCode()"
-                        class="w-full mt-4 bg-transparent text-purple-600 py-2 rounded-lg hover:bg-purple-50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
-                    Resend Code
+                        class="w-full mt-4 bg-transparent text-purple-600 py-2 rounded-lg hover:bg-purple-50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center justify-center">
+                    <span id="resend-text">Resend Code</span>
+                    <svg id="resend-spinner" class="animate-spin ml-2 h-5 w-5 text-purple-600 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                 </button>
             </form>
         </div>
@@ -109,15 +112,99 @@
 </div>
 
 <script th:inline="javascript">
-    // Handle form submission
-    document.getElementById('verify-form').addEventListener('submit', async function(e) {
+    // Initialize inputs and token field
+    const otpInputs = document.querySelectorAll('[data-otp-input]');
+    const tokenInput = document.getElementById('token');
+    let canResend = true;  // Flag to track if resend is allowed
+
+    // Function to distribute code across input fields
+    function distributeCode(code) {
+        code = code.replace(/\D/g, '').slice(0, 6);
+        for (let i = 0; i < otpInputs.length; i++) {
+            otpInputs[i].value = code[i] || '';
+        }
+        updateToken();
+
+        // Auto submit if code is complete
+        if (code.length === 6) {
+            setTimeout(() => {
+                document.getElementById('verify-form').dispatchEvent(new Event('submit'));
+            }, 300);
+        }
+    }
+
+    // Handle paste on any input
+    otpInputs.forEach(input => {
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+            distributeCode(pastedData);
+        });
+
+        // Only allow numbers
+        input.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '');
+            if (e.target.value && input.nextElementSibling && input.nextElementSibling.hasAttribute('data-otp-input')) {
+                input.nextElementSibling.focus();
+            }
+            updateToken();
+        });
+
+        // Handle backspace
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                if (!e.target.value && input.previousElementSibling) {
+                    input.previousElementSibling.focus();
+                    e.preventDefault();
+                }
+            } else if (e.key === 'ArrowLeft' && input.previousElementSibling) {
+                input.previousElementSibling.focus();
+            } else if (e.key === 'ArrowRight' && input.nextElementSibling) {
+                input.nextElementSibling.focus();
+            }
+        });
+
+        // Select all on focus
+        input.addEventListener('focus', () => {
+            setTimeout(() => input.select(), 0);
+        });
+    });
+
+    // Update hidden token input
+    function updateToken() {
+        tokenInput.value = Array.from(otpInputs).map(input => input.value).join('');
+    }
+
+    // Handle paste anywhere functionality
+    const form = document.getElementById('verify-form');
+    form.addEventListener('paste', (e) => {
+        if (!e.target.hasAttribute('data-otp-input')) {
+            e.preventDefault();
+            const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+            distributeCode(pastedData);
+        }
+    });
+
+    // Form submission handler
+    form.addEventListener('submit', async function(e) {
         e.preventDefault();
 
         const submitBtn = document.getElementById('submit-btn');
         const btnText = document.getElementById('btn-text');
         const spinner = document.getElementById('loading-spinner');
         const username = document.getElementById('username').value;
-        const token = document.getElementById('token').value;
+        const token = tokenInput.value;
+
+        if (token.length !== 6) {
+            Toastify({
+                text: "Please enter all 6 digits",
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "#EF4444",
+            }).showToast();
+            return;
+        }
 
         // Show loading state
         submitBtn.disabled = true;
@@ -127,13 +214,8 @@
         try {
             const response = await fetch('/api/v1/auth/passcode-verification', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: username,
-                    token: token
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, token })
             });
 
             const data = await response.json();
@@ -147,7 +229,6 @@
                     backgroundColor: "#10B981",
                 }).showToast();
 
-                // Redirect to reset password page
                 setTimeout(() => {
                     window.location.href = `/reset-password?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
                 }, 2000);
@@ -169,23 +250,27 @@
         }
     });
 
-    // Handle resend code
+    // Resend code functionality
     async function resendCode() {
+        if (!canResend) return;
+
         const resendBtn = document.getElementById('resend-btn');
+        const resendText = document.getElementById('resend-text');
+        const resendSpinner = document.getElementById('resend-spinner');
         const username = document.getElementById('username').value;
 
+        // Show loading state
         resendBtn.disabled = true;
-        resendBtn.textContent = 'Sending...';
+        canResend = false;
+        resendText.textContent = 'Sending...';
+        resendSpinner.classList.remove('hidden');
+        resendBtn.classList.add('opacity-75');
 
         try {
             const response = await fetch('/api/v1/auth/passcode-verification/token', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: username
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
             });
 
             const data = await response.json();
@@ -198,6 +283,21 @@
                     position: "right",
                     backgroundColor: "#10B981",
                 }).showToast();
+
+                // Start countdown timer
+                let timeLeft = 60;
+                const countdownInterval = setInterval(() => {
+                    if (timeLeft <= 0) {
+                        resendBtn.disabled = false;
+                        resendText.textContent = 'Resend Code';
+                        resendBtn.classList.remove('opacity-75');
+                        canResend = true;
+                        clearInterval(countdownInterval);
+                    } else {
+                        resendText.textContent = `Resend Code (${timeLeft}s)`;
+                        timeLeft--;
+                    }
+                }, 1000);
             } else {
                 throw new Error(data.message || 'Failed to resend code');
             }
@@ -209,11 +309,20 @@
                 position: "right",
                 backgroundColor: "#EF4444",
             }).showToast();
-        } finally {
+
             resendBtn.disabled = false;
-            resendBtn.textContent = 'Resend Code';
+            resendText.textContent = 'Resend Code';
+            resendBtn.classList.remove('opacity-75');
+            canResend = true;
+        } finally {
+            resendSpinner.classList.add('hidden');
         }
     }
+
+    // Initial focus on first input
+    window.addEventListener('load', () => {
+        otpInputs[0].focus();
+    });
 </script>
 </body>
 </html>
