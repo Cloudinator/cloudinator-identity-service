@@ -1,18 +1,22 @@
 package istad.co.identity.domain;
 
+
+import istad.co.identity.config.jpa.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalTime;
 
-@NoArgsConstructor
 @Getter
 @Setter
+@NoArgsConstructor
+@ToString
 @Entity
 @Table(name = "email_verification_tokens")
-public class EmailVerificationToken  {
+public class VerificationToken extends Auditable<String> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

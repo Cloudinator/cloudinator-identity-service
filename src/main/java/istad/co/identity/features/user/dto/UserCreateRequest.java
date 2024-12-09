@@ -20,10 +20,18 @@ public record UserCreateRequest(
         @Size(max = 32, message = "Password can not be longer than 32 characters")
         String password,
 
+        @NotBlank(message = "Password confirmation is required")
+        @Size(min = 6, message = "Confirmation password must be at least 6 characters long")
+        @Size(max = 32, message = "Confirmation password can not be longer than 32 characters")
+        String confirmedPassword,
+
         @NotEmpty(message = "Email is required")
         @Email(message = "Email must be valid")
         String email,
 
+        @NotEmpty(message = "Accepting Terms and Conditions is required")
+        @Size(min = 4, max = 5, message = "Value must be either true or false")
+        String acceptTerms,
         @NotEmpty(message = "Authority is required at least one")
         List<@NotBlank(message = "Authority name is required") String> authorities
 ) {

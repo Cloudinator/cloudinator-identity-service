@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +68,8 @@ public class UserServiceImpl implements UserService{
 
         user.setUserAuthorities(new HashSet<>());
         user.getUserAuthorities().add(defaultUserAuthority);
+        checkConfirmPasswords(userCreateRequest.password(),userCreateRequest.confirmedPassword());
+        checkTermsAndConditions(userCreateRequest.acceptTerms());
 
         if (userCreateRequest.authorities() != null) {
             final User finalUser = user;
@@ -91,6 +94,14 @@ public class UserServiceImpl implements UserService{
 
 
         emailVerificationTokenService.generate(user);
+    }
+
+    @Override
+    public void isNotAuthenticated(Authentication authentication) {
+
+        if(authentication==null){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"user is not authenticated");
+        }
     }
 
     @Override
@@ -192,6 +203,13 @@ public class UserServiceImpl implements UserService{
         // check if email already exists (validation)
         if (userRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists!");
+        }
+    }
+
+    @Override
+    public void checkConfirmPasswords(String password, String confirmPassword) {
+        if (!password.equals(confirmPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password doesn't match!");
         }
     }
 

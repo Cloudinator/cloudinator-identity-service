@@ -29,8 +29,9 @@ public class RegisterController {
         UserCreateRequest userRequest = UserCreateRequest.builder()
                 .username("")
                 .password("")
+                .confirmedPassword("")
                 .email("")
-                .authorities(new ArrayList<>())
+                .acceptTerms("")
                 .build();
         model.addAttribute("userRequest", userRequest);
         return "register";

@@ -1,4 +1,4 @@
-package com.kh.edu.cstad.khotixs.security_service.feature.passcode;//package com.khotixs.identity_service.feature.forgotpasswordreset;
+package istad.co.identity.features.password;//package com.khotixs.identity_service.feature.forgotpasswordreset;
 
 import istad.co.identity.base.BasedMessage;
 import istad.co.identity.features.password.PasscodeService;

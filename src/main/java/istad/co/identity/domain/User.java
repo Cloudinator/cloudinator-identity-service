@@ -44,6 +44,9 @@ public class User extends Auditable<String> {
     @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean accountNonExpired;
 
+    @Column(unique = true)
+    private String phoneNumber;
+
     @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean accountNonLocked;
 

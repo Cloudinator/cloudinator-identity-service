@@ -6,10 +6,13 @@ import istad.co.identity.features.user.dto.UserCreateRequest;
 import istad.co.identity.features.user.dto.UserPasswordResetResponse;
 import istad.co.identity.features.user.dto.UserResponse;
 import org.springframework.data.domain.Page;
+import org.springframework.security.core.Authentication;
 
 public interface UserService {
 
     void createNewUser(UserCreateRequest userCreateRequest);
+
+    void isNotAuthenticated(Authentication authentication);
 
     UserPasswordResetResponse resetPassword(String username);
 
@@ -28,6 +31,8 @@ public interface UserService {
     void existsByUsername(String username);
 
     void existsByEmail(String email);
+    void checkConfirmPasswords(String password, String confirmPassword);
+
 
     void verifyEmail(User user);
 
