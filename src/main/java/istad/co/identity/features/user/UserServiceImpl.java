@@ -92,7 +92,6 @@ public class UserServiceImpl implements UserService{
 
         userAuthorityRepository.saveAll(user.getUserAuthorities());
 
-
         emailVerificationTokenService.generate(user);
     }
 
