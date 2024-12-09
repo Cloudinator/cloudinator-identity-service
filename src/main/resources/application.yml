@@ -2,9 +2,9 @@ spring:
   application:
     name: identity
   datasource:
-    url: jdbc:postgresql://34.124.129.117:3242/fastapi
-    username: springdb
-    password: ITE2@2024
+    url: jdbc:postgresql://136.228.158.126:3297/postgres
+    username: postgres
+    password: password
   jpa:
     hibernate:
       ddl-auto: update

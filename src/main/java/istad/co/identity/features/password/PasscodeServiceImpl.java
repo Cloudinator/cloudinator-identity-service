@@ -96,7 +96,7 @@ public class PasscodeServiceImpl implements PasscodeService {
 
             log.info("Generated verification code: {}", passcodeVerification.getToken());
 
-            String emailContent = templateEngine.process("email/verification-code.html", context);
+            String emailContent = templateEngine.process("email/passcode.html", context);
             log.info("Rendered email content: {}", emailContent);
 
             mimeMessageHelper.setTo(user.getEmail());
