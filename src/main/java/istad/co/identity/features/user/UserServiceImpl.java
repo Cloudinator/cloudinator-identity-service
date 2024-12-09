@@ -89,7 +89,6 @@ public class UserServiceImpl implements UserService{
 
         userAuthorityRepository.saveAll(user.getUserAuthorities());
 
-        gitLabServiceFein.createUser(userCreateRequest.username() , userCreateRequest.email(), userCreateRequest.password());
 
         emailVerificationTokenService.generate(user);
     }
@@ -200,6 +199,9 @@ public class UserServiceImpl implements UserService{
     @Override
     public void verifyEmail(User user) {
         user.setEmailVerified(true);
+
+        gitLabServiceFein.createUser(user.getUsername() , user.getEmail(), user.getPassword());
+
         userRepository.save(user);
     }
 
