@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: identity
+  datasource:
+    url: jdbc:postgresql://34.124.129.117:3242/fastapi
+    username: springdb
+    password: ITE2@2024
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: "vannraruos@gmail.com"
+    password: "klmcbchpzqszhlhz"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://eureka-service:8761/eureka/
+  instance:
+    preferIpAddress: true
+
+server:
+  port: 8080
+

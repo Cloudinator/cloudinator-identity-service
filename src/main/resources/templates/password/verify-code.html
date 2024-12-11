@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Code</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.js"></script>
+    <style>
+        .login-container {
+            min-height: 100vh;
+            background-color: white;
+        }
+        .illustration-pattern {
+            background-image: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" fill="%23f3f4f6" /></svg>');
+        }
+        @media (max-width: 768px) {
+            .login-container {
+                background-color: #fafafa;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+<div class="login-container flex flex-col md:flex-row">
+    <!-- Left Section -->
+    <div class="w-full md:w-1/2 p-4 sm:p-6 md:p-8 lg:p-12 xl:p-16 flex flex-col justify-center">
+        <div class="max-w-md mx-auto w-full">
+            <!-- Back Button -->
+            <a href="/forgot-password" class="text-gray-600 flex items-center mb-6 md:mb-8 hover:text-gray-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.707 4.293a1 1 0 010 1.414L7.414 8H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-sm">Back</span>
+            </a>
+
+            <!-- Logo -->
+            <img th:src="@{/images/logo.png}" alt="Logo" class="h-16 md:h-20 w-auto mb-6 md:mb-8">
+
+            <!-- Title -->
+            <h1 class="text-2xl md:text-3xl font-bold mb-2">Enter Verification Code</h1>
+            <p class="text-gray-600 mb-8">We've sent a code to your email. Please enter it below.</p>
+
+            <!-- Form -->
+            <form id="verify-form" class="space-y-6">
+                <input type="hidden" id="username" th:value="${username}">
+
+                <!-- OTP Input -->
+                <div class="flex justify-between gap-2">
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                    <input type="text" maxlength="1" class="w-12 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" data-otp-input required />
+                </div>
+                <input type="hidden" id="token" name="token">
+
+                <button type="submit"
+                        id="submit-btn"
+                        class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center justify-center">
+                    <span id="btn-text">Verify Code</span>
+                    <svg id="loading-spinner" class="animate-spin ml-2 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+
+                <button type="button"
+                        id="resend-btn"
+                        onclick="resendCode()"
+                        class="w-full mt-4 bg-transparent text-purple-600 py-2 rounded-lg hover:bg-purple-50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center justify-center">
+                    <span id="resend-text">Resend Code</span>
+                    <svg id="resend-spinner" class="animate-spin ml-2 h-5 w-5 text-purple-600 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Section -->
+    <div class="hidden md:block md:w-1/2 bg-purple-50 illustration-pattern">
+        <div class="h-full flex items-center justify-center p-8">
+            <div class="bg-purple-600 text-white p-8 rounded-lg max-w-md w-full">
+                <h2 class="text-2xl font-bold mb-6">Verification Instructions</h2>
+                <ul class="space-y-4">
+                    <li class="flex items-start">
+                        <svg class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                        <span>Check your email for the verification code</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <span>Enter the 6-digit code above</span>
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span>Set your new password after verification</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    // Initialize inputs and token field
+    const otpInputs = document.querySelectorAll('[data-otp-input]');
+    const tokenInput = document.getElementById('token');
+    let canResend = true;  // Flag to track if resend is allowed
+
+    // Function to distribute code across input fields
+    function distributeCode(code) {
+        code = code.replace(/\D/g, '').slice(0, 6);
+        for (let i = 0; i < otpInputs.length; i++) {
+            otpInputs[i].value = code[i] || '';
+        }
+        updateToken();
+
+        // Auto submit if code is complete
+        if (code.length === 6) {
+            setTimeout(() => {
+                document.getElementById('verify-form').dispatchEvent(new Event('submit'));
+            }, 300);
+        }
+    }
+
+    // Handle paste on any input
+    otpInputs.forEach(input => {
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+            distributeCode(pastedData);
+        });
+
+        // Only allow numbers
+        input.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '');
+            if (e.target.value && input.nextElementSibling && input.nextElementSibling.hasAttribute('data-otp-input')) {
+                input.nextElementSibling.focus();
+            }
+            updateToken();
+        });
+
+        // Handle backspace
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                if (!e.target.value && input.previousElementSibling) {
+                    input.previousElementSibling.focus();
+                    e.preventDefault();
+                }
+            } else if (e.key === 'ArrowLeft' && input.previousElementSibling) {
+                input.previousElementSibling.focus();
+            } else if (e.key === 'ArrowRight' && input.nextElementSibling) {
+                input.nextElementSibling.focus();
+            }
+        });
+
+        // Select all on focus
+        input.addEventListener('focus', () => {
+            setTimeout(() => input.select(), 0);
+        });
+    });
+
+    // Update hidden token input
+    function updateToken() {
+        tokenInput.value = Array.from(otpInputs).map(input => input.value).join('');
+    }
+
+    // Handle paste anywhere functionality
+    const form = document.getElementById('verify-form');
+    form.addEventListener('paste', (e) => {
+        if (!e.target.hasAttribute('data-otp-input')) {
+            e.preventDefault();
+            const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+            distributeCode(pastedData);
+        }
+    });
+
+    // Form submission handler
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = document.getElementById('btn-text');
+        const spinner = document.getElementById('loading-spinner');
+        const username = document.getElementById('username').value;
+        const token = tokenInput.value;
+
+        if (token.length !== 6) {
+            Toastify({
+                text: "Please enter all 6 digits",
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "#EF4444",
+            }).showToast();
+            return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        btnText.textContent = 'Verifying...';
+        spinner.classList.remove('hidden');
+
+        try {
+            const response = await fetch('/api/v1/auth/passcode-verification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, token })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Toastify({
+                    text: "Code verified successfully!",
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#10B981",
+                }).showToast();
+
+                setTimeout(() => {
+                    window.location.href = `/reset-password?username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`;
+                }, 2000);
+            } else {
+                throw new Error(data.message || 'Verification failed');
+            }
+        } catch (error) {
+            Toastify({
+                text: error.message || "Verification failed",
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "#EF4444",
+            }).showToast();
+        } finally {
+            submitBtn.disabled = false;
+            btnText.textContent = 'Verify Code';
+            spinner.classList.add('hidden');
+        }
+    });
+
+    // Resend code functionality
+    async function resendCode() {
+        if (!canResend) return;
+
+        const resendBtn = document.getElementById('resend-btn');
+        const resendText = document.getElementById('resend-text');
+        const resendSpinner = document.getElementById('resend-spinner');
+        const username = document.getElementById('username').value;
+
+        // Show loading state
+        resendBtn.disabled = true;
+        canResend = false;
+        resendText.textContent = 'Sending...';
+        resendSpinner.classList.remove('hidden');
+        resendBtn.classList.add('opacity-75');
+
+        try {
+            const response = await fetch('/api/v1/auth/passcode-verification/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Toastify({
+                    text: "New code sent to your email",
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#10B981",
+                }).showToast();
+
+                // Start countdown timer
+                let timeLeft = 60;
+                const countdownInterval = setInterval(() => {
+                    if (timeLeft <= 0) {
+                        resendBtn.disabled = false;
+                        resendText.textContent = 'Resend Code';
+                        resendBtn.classList.remove('opacity-75');
+                        canResend = true;
+                        clearInterval(countdownInterval);
+                    } else {
+                        resendText.textContent = `Resend Code (${timeLeft}s)`;
+                        timeLeft--;
+                    }
+                }, 1000);
+            } else {
+                throw new Error(data.message || 'Failed to resend code');
+            }
+        } catch (error) {
+            Toastify({
+                text: error.message || "Failed to resend code",
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "#EF4444",
+            }).showToast();
+
+            resendBtn.disabled = false;
+            resendText.textContent = 'Resend Code';
+            resendBtn.classList.remove('opacity-75');
+            canResend = true;
+        } finally {
+            resendSpinner.classList.add('hidden');
+        }
+    }
+
+    // Initial focus on first input
+    window.addEventListener('load', () => {
+        otpInputs[0].focus();
+    });
+</script>
+</body>
+</html>
