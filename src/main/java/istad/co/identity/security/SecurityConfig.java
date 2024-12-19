@@ -117,7 +117,7 @@ public class SecurityConfig {
                         .invalidateHttpSession(true)  // Invalidate the session
                         .clearAuthentication(true)
                         .deleteCookies("access_token", "JSESSIONID")  // Clear the OAuth2 token and session cookie
-                        .logoutSuccessUrl("http://gateway:8081?logout=true")
+                        .logoutSuccessUrl("http://34.87.156.153:8081?logout=true")
                 )
                 .cors(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable);

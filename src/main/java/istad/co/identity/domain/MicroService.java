@@ -18,6 +18,11 @@ public class MicroService {
 
     @Column(nullable = false, unique = true)
     private String uuid;
+    @Column(nullable = false, length = 64)
+    private String name;
+
+    @Column(nullable = false, length = 64)
+    private String branch;
 
     @Column(nullable = false, length = 64)
     private String namespace;
@@ -25,12 +30,6 @@ public class MicroService {
     @Column(nullable = false, length = 64)
     private String git;
 
-    @Column(nullable = false, length = 64)
-    private String serviceName;
-
-    @ManyToOne
-    @JoinColumn(name = "env_id", nullable = false)
-    private Environment env;
 
     @ManyToOne
     @JoinColumn(name = "sub_workspace_id", nullable = false)
