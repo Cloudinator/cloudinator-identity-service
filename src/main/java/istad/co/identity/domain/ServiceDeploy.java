@@ -31,12 +31,4 @@ public class ServiceDeploy {
     @Column(nullable = false, length = 64)
     private String domainUuid;
 
-    @ManyToOne
-    @JoinColumn(name = "service_type_id", nullable = false)
-    private ServiceType serviceType;
-
-    @ManyToOne
-    @JoinColumn(name = "env_id", nullable = false)
-    private Environment env;
-
 }
