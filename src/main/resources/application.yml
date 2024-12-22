@@ -2,7 +2,7 @@ spring:
   application:
     name: identity
   datasource:
-    url: jdbc:postgresql://34.142.187.195:3242/fastapi
+    url: jdbc:postgresql://34.142.187.195:3242/testingdb
     username: springdb
     password: ITE2@2024
   jpa:
@@ -26,16 +26,16 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://34.87.156.153:8080
+          issuer-uri: http://localhost:8080
 
-eureka:
-  instance:
-    prefer-ip-address: true
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-      defaultZone: http://34.87.156.153:8761/eureka/
+#eureka:
+#  instance:
+#    prefer-ip-address: true
+#  client:
+#    register-with-eureka: true
+#    fetch-registry: true
+#    service-url:
+#      defaultZone: http://34.87.156.153:8761/eureka/
 
 
 server:
