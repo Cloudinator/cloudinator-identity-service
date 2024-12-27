@@ -125,12 +125,15 @@ public class Init {
                     uris.add("https://cloudinator-ui.cloudinator.cloud/login/oauth2/code/devops");
                     uris.add("https://dynamic.psa-khmer.world/login/oauth2/code/devops");
                     uris.add("http://localhost:8085/login/oauth2/code/devops");
+                    uris.add("https://cloudinator.istad.co/login/oauth2/code/devops");
+
                 })
                 .postLogoutRedirectUris(uris -> {
                     uris.add("https://cloudinator-ui.cloudinator.cloud");
                     uris.add("https://dynamic.psa-khmer.world");
                     uris.add("http://34.87.156.153:8081");
                     uris.add("http://localhost:8081");
+                    uris.add("https://cloudinator.istad.co");
                 })
                 .clientAuthenticationMethods(method -> {
                     method.add(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
