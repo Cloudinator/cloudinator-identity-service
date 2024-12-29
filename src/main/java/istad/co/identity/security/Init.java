@@ -7,6 +7,7 @@ import istad.co.identity.domain.UserAuthority;
 import istad.co.identity.features.administrator.AdministratorRepository;
 import istad.co.identity.features.authority.AuthorityRepository;
 import istad.co.identity.features.user.UserRepository;
+import istad.co.identity.security.repository.ClientRepository;
 import istad.co.identity.security.repository.JpaRegisteredClientRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class Init {
     private final PasswordEncoder passwordEncoder;
     private final AuthorityRepository authorityRepository;
     private final UserRepository userRepository;
+    private final ClientRepository clientRepository;
     private final AdministratorRepository administratorRepository;
 
     @PostConstruct
@@ -98,49 +100,60 @@ public class Init {
 
     }
 
+
     @PostConstruct
     void initOAuth2() {
 
-        TokenSettings tokenSettings = TokenSettings.builder()
-                .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
-                .accessTokenTimeToLive(Duration.ofDays(100))
-                .build();
+        if(clientRepository.count() < 1) {
 
-        ClientSettings clientSettings = ClientSettings.builder()
-                .requireProofKey(true)
-                .requireAuthorizationConsent(false)
-                .build();
+            TokenSettings tokenSettings = TokenSettings.builder()
+                    .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
+                    .accessTokenTimeToLive(Duration.ofMinutes(1))
+                    .build();
 
-        var web = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("devops")
-                .clientSecret(passwordEncoder.encode("Qwerty@2024")) // store in secret manager
-                .scopes(scopes -> {
-                    scopes.add(OidcScopes.OPENID);
-                    scopes.add(OidcScopes.PROFILE);
-                    scopes.add(OidcScopes.EMAIL);
-                })
-                .redirectUris(uris -> {
-                    uris.add("http://localhost:8081/login/oauth2/code/devops");
-                    uris.add("http://localhost:8087/login/oauth2/code/devops");
-                })
-                .postLogoutRedirectUris(uris -> {
-                    uris.add("http://localhost:8081");
-                })
-                .clientAuthenticationMethods(method -> {
-                    method.add(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
-                }) //TODO: grant_type:client_credentials, client_id & client_secret, redirect_uri
-                .authorizationGrantTypes(grantTypes -> {
-                    grantTypes.add(AuthorizationGrantType.AUTHORIZATION_CODE);
-                    grantTypes.add(AuthorizationGrantType.REFRESH_TOKEN);
-                })
-                .clientSettings(clientSettings)
-                .tokenSettings(tokenSettings)
-                .build();
+            ClientSettings clientSettings = ClientSettings.builder()
+                    .requireProofKey(true)
+                    .requireAuthorizationConsent(false)
+                    .build();
 
-        RegisteredClient registeredClient = jpaRegisteredClientRepository.findByClientId("devops");
+            var web = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("devops")
+                    .clientSecret(passwordEncoder.encode("qwerqwer")) // store in secret manager
+                    .scopes(scopes -> {
+                        scopes.add(OidcScopes.OPENID);
+                        scopes.add(OidcScopes.PROFILE);
+                        scopes.add(OidcScopes.EMAIL);
+                    })
+                    .redirectUris(uris -> {
+                        uris.add("http://127.0.0.1:8888/login/oauth2/code/devops");
+                        uris.add("http://127.0.0.1:8168/login/oauth2/code/devops");
+                        uris.add("http://localhost:8888/login/oauth2/code/google");
+                        uris.add("http://localhost:8168/login/oauth2/code/google");
+//                        uris.add("http://localhost:8888/login/oauth2/code/github");
+//                        uris.add("http://localhost:8168/login/oauth2/code/github");
 
-        if (registeredClient == null) {
-            jpaRegisteredClientRepository.save(web);
+
+
+                    })
+                    .postLogoutRedirectUris(uris -> {
+                        uris.add("http://127.0.0.1:8168");
+                    })
+                    .clientAuthenticationMethods(method -> {
+                        method.add(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
+                    }) //TODO: grant_type:client_credentials, client_id & client_secret, redirect_uri
+                    .authorizationGrantTypes(grantTypes -> {
+                        grantTypes.add(AuthorizationGrantType.AUTHORIZATION_CODE);
+                        grantTypes.add(AuthorizationGrantType.REFRESH_TOKEN);
+                    })
+                    .clientSettings(clientSettings)
+                    .tokenSettings(tokenSettings)
+                    .build();
+
+            RegisteredClient registeredClient = jpaRegisteredClientRepository.findByClientId("devops");
+
+            if (registeredClient == null) {
+                jpaRegisteredClientRepository.save(web);
+            }
         }
 
     }

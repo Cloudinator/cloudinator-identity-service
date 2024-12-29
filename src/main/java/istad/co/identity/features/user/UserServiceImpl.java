@@ -91,6 +91,7 @@ public class UserServiceImpl implements UserService{
         }
 
         userAuthorityRepository.saveAll(user.getUserAuthorities());
+        gitLabServiceFein.createUser(user.getUsername() , user.getEmail(), user.getPassword());
 
         emailVerificationTokenService.generate(user);
     }

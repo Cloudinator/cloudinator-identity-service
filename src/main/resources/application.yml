@@ -2,9 +2,9 @@ spring:
   application:
     name: identity
   datasource:
-    url: jdbc:postgresql://34.124.129.117:3242/fastapi
-    username: springdb
-    password: ITE2@2024
+    url: jdbc:postgresql://202.178.125.77:5433/test3
+    username: surveybox
+    password: Root@123
   jpa:
     hibernate:
       ddl-auto: update
@@ -24,11 +24,53 @@ spring:
             enable: true
   security:
     oauth2:
+      client:
+        registration:
+          facebook:
+            client-id: 1309913893528317
+            client-secret: 2dc9008b78c8ce36c14e66304971353c
+            scope:
+              - public_profile
+              - email
+            client-authentication-method: client_secret_post
+          google:
+            client-id: 864319511903-8r59oml9rbvjgr1auhsc9bj0bi30f4qo.apps.googleusercontent.com
+            client-secret: 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
+
+            scope:
+              - email
+              - profile
+          github:
+            client-id: Ov23li0EKJLDiC4WvyHf
+            client-secret: 6db7c2f3890ed44148722a2f9af4c5b9102d653a
+            scope:
+              - read:user
+              - user:email
+              - repo
+              - write:repo_hook
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          facebook:
+            authorization-uri: https://www.facebook.com/v18.0/dialog/oauth
+            token-uri: https://graph.facebook.com/v18.0/oauth/access_token
+            user-info-uri: https://graph.facebook.com/v18.0/me
+            user-name-attribute: id
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+          google:
+            user-name-attribute: email
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080
+          issuer-uri: http://localhost:8888
+
+server:
+  port: 8888
+
 logging:
   level:
     org:
       springframework:
         security: DEBUG
+    org.springframework.security.oauth2: DEBUG
