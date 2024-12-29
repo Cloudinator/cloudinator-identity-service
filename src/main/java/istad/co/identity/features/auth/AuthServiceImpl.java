@@ -18,10 +18,15 @@ import org.springframework.http.*;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Optional;
 
 
 @Service
@@ -51,14 +56,51 @@ public class AuthServiceImpl implements AuthService{
 
         return userService.findByUsername(registerRequest.username());
     }
-
     @Override
     public UserResponse findMe(Authentication authentication) {
-
         isNotAuthenticated(authentication);
-
+        if (authentication instanceof OAuth2AuthenticationToken oauth2Auth) {
+            // Handle Google OAuth2 authentication
+            if (oauth2Auth.getAuthorizedClientRegistrationId().equals("google")) {
+                return handleGoogleUser((DefaultOidcUser) oauth2Auth.getPrincipal());
+            } else if(oauth2Auth.getAuthorizedClientRegistrationId().equals("github")) {
+                return handleGitHubUser((DefaultOAuth2User) oauth2Auth.getPrincipal());
+            }
+        }
         return userService.findByUsername(authentication.getName());
     }
+
+    private UserResponse handleGoogleUser(DefaultOidcUser oidcUser) {
+        String email = oidcUser.getEmail();
+
+        return this.findByEmail(email)
+                .orElseGet(() -> userService.createGoogleUser(oidcUser));
+    }
+
+    private UserResponse handleGitHubUser(OAuth2User oauth2User) {
+
+        return this.findByUsername(oauth2User.getAttribute("login"))
+                .orElseGet(() -> userService.createGithubUser(oauth2User));
+    }
+    @Override
+    public Optional<UserResponse> findByEmail(String email) {
+        return userRepository.findByUsernameAndIsEnabledTrue(email)
+                .map(userMapper::toUserResponse);
+    }
+
+    @Override
+    public Optional<UserResponse> findByUsername(String username) {
+        return userRepository.findByUsernameAndIsEnabledTrue(username)
+                .map(userMapper::toUserResponse);
+    }
+
+    //    @Override
+//    public UserResponse findMe(Authentication authentication) {
+//
+//        isNotAuthenticated(authentication);
+//
+//        return userService.findByUsername(authentication.getName());
+//    }
     @Override
     public void changePassword(Authentication authentication, ChangePasswordRequest changePasswordRequest) {
 

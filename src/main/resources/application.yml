@@ -33,13 +33,14 @@ spring:
               - public_profile
               - email
             client-authentication-method: client_secret_post
+            redirect-uri: http://localhost:8888/login/oauth2/code/facebook  # Keep as 8888
           google:
             client-id: 864319511903-8r59oml9rbvjgr1auhsc9bj0bi30f4qo.apps.googleusercontent.com
             client-secret: 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
-
             scope:
               - email
               - profile
+            redirect-uri: http://localhost:8888/login/oauth2/code/google  # Keep as 8888
           github:
             client-id: Ov23li0EKJLDiC4WvyHf
             client-secret: 6db7c2f3890ed44148722a2f9af4c5b9102d653a
@@ -48,7 +49,7 @@ spring:
               - user:email
               - repo
               - write:repo_hook
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: http://localhost:8888/login/oauth2/code/github
         provider:
           facebook:
             authorization-uri: https://www.facebook.com/v18.0/dialog/oauth

@@ -103,12 +103,10 @@ public class Init {
 
     @PostConstruct
     void initOAuth2() {
-
-        if(clientRepository.count() < 1) {
-
+        if (clientRepository.count() < 1) {
             TokenSettings tokenSettings = TokenSettings.builder()
                     .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
-                    .accessTokenTimeToLive(Duration.ofMinutes(1))
+                    .accessTokenTimeToLive(Duration.ofMinutes(30))  // Increased time
                     .build();
 
             ClientSettings clientSettings = ClientSettings.builder()
@@ -118,29 +116,23 @@ public class Init {
 
             var web = RegisteredClient.withId(UUID.randomUUID().toString())
                     .clientId("devops")
-                    .clientSecret(passwordEncoder.encode("qwerqwer")) // store in secret manager
+                    .clientSecret(passwordEncoder.encode("Qwerty@2024"))
                     .scopes(scopes -> {
                         scopes.add(OidcScopes.OPENID);
                         scopes.add(OidcScopes.PROFILE);
                         scopes.add(OidcScopes.EMAIL);
                     })
                     .redirectUris(uris -> {
-                        uris.add("http://127.0.0.1:8888/login/oauth2/code/devops");
-                        uris.add("http://127.0.0.1:8168/login/oauth2/code/devops");
-                        uris.add("http://localhost:8888/login/oauth2/code/google");
-                        uris.add("http://localhost:8168/login/oauth2/code/google");
-//                        uris.add("http://localhost:8888/login/oauth2/code/github");
-//                        uris.add("http://localhost:8168/login/oauth2/code/github");
-
-
-
+                        uris.add("http://localhost:8081/login/oauth2/code/devops");
+                        uris.add("http://localhost:8081/oauth2/code/devops");
+                        uris.add("http://localhost:8081");
                     })
                     .postLogoutRedirectUris(uris -> {
-                        uris.add("http://127.0.0.1:8168");
+                        uris.add("http://localhost:8081");
                     })
                     .clientAuthenticationMethods(method -> {
                         method.add(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
-                    }) //TODO: grant_type:client_credentials, client_id & client_secret, redirect_uri
+                    })
                     .authorizationGrantTypes(grantTypes -> {
                         grantTypes.add(AuthorizationGrantType.AUTHORIZATION_CODE);
                         grantTypes.add(AuthorizationGrantType.REFRESH_TOKEN);
@@ -155,7 +147,5 @@ public class Init {
                 jpaRegisteredClientRepository.save(web);
             }
         }
-
     }
-
 }

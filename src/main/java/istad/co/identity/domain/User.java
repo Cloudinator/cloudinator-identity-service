@@ -2,9 +2,7 @@ package istad.co.identity.domain;
 
 import istad.co.identity.config.jpa.Auditable;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -14,6 +12,8 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "users")
+@Builder
+@AllArgsConstructor
 public class User extends Auditable<String> {
 
     @Id

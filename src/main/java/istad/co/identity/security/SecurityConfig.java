@@ -187,17 +187,22 @@ SecurityFilterChain configureHttpSecurity(HttpSecurity http) throws Exception {
                     ).permitAll()
                     .anyRequest().authenticated()
             )
+//            .formLogin(form -> form
+//                    .loginPage("/login")
+//                    .loginProcessingUrl("/login")
+////                    .defaultSuccessUrl("http://localhost:8888/", true)
+//                    .defaultSuccessUrl("/login?success=true", false)
+//                    .failureUrl("/login?error=true")
+//            )
             .formLogin(form -> form
                     .loginPage("/login")
                     .loginProcessingUrl("/login")
-//                    .defaultSuccessUrl("http://localhost:8888/", true)
-                    .defaultSuccessUrl("/login?success=true", false)
+                    .defaultSuccessUrl("http://localhost:8888", true)  // Change this
                     .failureUrl("/login?error=true")
             )
             .oauth2Login(oauth2 -> oauth2
                     .loginPage("/login")
-//                    .defaultSuccessUrl("http://localhost:8888/", true)
-                    .defaultSuccessUrl("/login?success=true", false)
+                    .defaultSuccessUrl("http://localhost:8888", true)  // And this
                     .userInfoEndpoint(userInfo -> userInfo
                             .userService(oauth2UserService()))
                     .failureHandler((request, response, exception) -> {
@@ -205,6 +210,17 @@ SecurityFilterChain configureHttpSecurity(HttpSecurity http) throws Exception {
                         response.sendRedirect("/login?error=oauth2");
                     })
             )
+//            .oauth2Login(oauth2 -> oauth2
+//                    .loginPage("/login")
+////                    .defaultSuccessUrl("http://localhost:8888/", true)
+//                    .defaultSuccessUrl("/login?success=true", false)
+//                    .userInfoEndpoint(userInfo -> userInfo
+//                            .userService(oauth2UserService()))
+//                    .failureHandler((request, response, exception) -> {
+//                        log.error("OAuth2 authentication failed: ", exception);
+//                        response.sendRedirect("/login?error=oauth2");
+//                    })
+//            )
             .oauth2ResourceServer(oauth2 -> oauth2
                     .jwt(Customizer.withDefaults())
             )
@@ -379,37 +395,37 @@ SecurityFilterChain configureHttpSecurity(HttpSecurity http) throws Exception {
             }
         };
     }
-//    @Bean
-//    OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
-//        return context -> {
-//            Authentication authentication = context.getPrincipal();
-//            Object principal = authentication.getPrincipal();
-//
-//            if (context.getTokenType().getValue().equals("id_token")) {
-//                if (principal instanceof CustomUserDetails customUserDetails) {
-//                    addCustomUserClaims(context, customUserDetails);
-//                } else if (principal instanceof DefaultOidcUser oidcUser) {
-//                    addGoogleUserClaims(context, oidcUser);
-//                } else if (principal instanceof DefaultOAuth2User oidcUser) {
-//                    addGithubUserClaims(context, oauth2User);
-//                } else if (principal instanceof DefaultOAuth2User oAuth2User) {
-//                    addFacebookUserClaims(context, oAuth2User);
-//                }
-//            }
-//
-//            if (context.getTokenType().getValue().equals("access_token")) {
-//                addStandardClaims(context, authentication);
-//
-//                if (principal instanceof CustomUserDetails customUserDetails) {
-//                    addCustomUserClaims(context, customUserDetails);
-//                } else if (principal instanceof DefaultOidcUser oidcUser) {
-//                    addGoogleUserClaims(context, oidcUser);
-//                } else if (principal instanceof DefaultOAuth2User oauth2User) {
-//                    addGithubUserClaims(context, oauth2User);
-//                }
-//            }
-//        };
-//    }
+    @Bean
+    OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
+        return context -> {
+            Authentication authentication = context.getPrincipal();
+            Object principal = authentication.getPrincipal();
+
+            if (context.getTokenType().getValue().equals("id_token")) {
+                if (principal instanceof CustomUserDetails customUserDetails) {
+                    addCustomUserClaims(context, customUserDetails);
+                } else if (principal instanceof DefaultOidcUser oidcUser) {
+                    addGoogleUserClaims(context, oidcUser);
+                } else if (principal instanceof DefaultOAuth2User oidcUser) {
+                    addGithubUserClaims(context, oauth2User);
+                } else if (principal instanceof DefaultOAuth2User oAuth2User) {
+                    addFacebookUserClaims(context, oAuth2User);
+                }
+            }
+
+            if (context.getTokenType().getValue().equals("access_token")) {
+                addStandardClaims(context, authentication);
+
+                if (principal instanceof CustomUserDetails customUserDetails) {
+                    addCustomUserClaims(context, customUserDetails);
+                } else if (principal instanceof DefaultOidcUser oidcUser) {
+                    addGoogleUserClaims(context, oidcUser);
+                } else if (principal instanceof DefaultOAuth2User oauth2User) {
+                    addGithubUserClaims(context, oauth2User);
+                }
+            }
+        };
+    }
 
     private void addStandardClaims(JwtEncodingContext context, Authentication authentication) {
         Set<String> scopes = new HashSet<>(context.getAuthorizedScopes());

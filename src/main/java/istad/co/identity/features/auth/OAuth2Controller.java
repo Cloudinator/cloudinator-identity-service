@@ -15,9 +15,9 @@ public class OAuth2Controller {
         return "oauth2/login";
     }
 
-    @GetMapping("/test-github")
-    public String testGithub(@RegisteredOAuth2AuthorizedClient("github") OAuth2AuthorizedClient client) {
-        return "Github connection test successful! Token: " + client.getAccessToken().getTokenValue();
-    }
+//    @GetMapping("/test-github")
+//    public String testGithub(@RegisteredOAuth2AuthorizedClient("github") OAuth2AuthorizedClient client) {
+//        return "Github connection test successful! Token: " + client.getAccessToken().getTokenValue();
+//    }
 
 }
