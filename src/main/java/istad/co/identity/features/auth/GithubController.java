@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -116,7 +117,75 @@ public class GithubController {
 
         return ResponseEntity.ok(tokenInfo);
     }
+    // Get GitHub repository details
+    //http://localhost:8888/api/github/repos/MuyleangIng/angular-jenkins
+    @GetMapping("/repos/{owner}/{repo}")
+    public ResponseEntity<Object> getGithubRepoDetails(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @RegisteredOAuth2AuthorizedClient("github") OAuth2AuthorizedClient authorizedClient
+    ) {
+        try {
+            HttpHeaders headers = createGithubHeaders(authorizedClient.getAccessToken().getTokenValue());
+            HttpEntity<String> entity = new HttpEntity<>(headers);
 
+            // Get repo details
+            String repoUrl = String.format("https://api.github.com/repos/%s/%s", owner, repo);
+            ResponseEntity<Map> repoResponse = restTemplate.exchange(
+                    repoUrl,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            // Get repository contents
+            String contentsUrl = repoUrl + "/contents";
+            ResponseEntity<List> contentsResponse = restTemplate.exchange(
+                    contentsUrl,
+                    HttpMethod.GET,
+                    entity,
+                    List.class
+            );
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("repository", repoResponse.getBody());
+            response.put("contents", contentsResponse.getBody());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching GitHub repository details: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Get file content from GitHub
+    @GetMapping("/github/repos/{owner}/{repo}/contents/{path}")
+    public ResponseEntity<Object> getGithubFileContent(
+            @PathVariable String owner,
+            @PathVariable String repo,
+            @PathVariable String path,
+            @RegisteredOAuth2AuthorizedClient("github") OAuth2AuthorizedClient authorizedClient
+    ) {
+        try {
+            HttpHeaders headers = createGithubHeaders(authorizedClient.getAccessToken().getTokenValue());
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            String contentUrl = String.format("https://api.github.com/repos/%s/%s/contents/%s", owner, repo, path);
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    contentUrl,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            return ResponseEntity.ok(response.getBody());
+        } catch (Exception e) {
+            log.error("Error fetching GitHub file content: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
     // Helper methods
     private boolean isGithubUser() {
         return SecurityContextHolder.getContext().getAuthentication() instanceof OAuth2AuthenticationToken auth

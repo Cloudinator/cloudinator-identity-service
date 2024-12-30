@@ -21,12 +21,10 @@ import java.io.IOException;
 @Slf4j
 public class OAuth2LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
     private final UserService userService;
-
+    private final UserRepository userRepository;
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
-        log.info("OAuth2 Login Success Handler triggered");
-
         if (authentication instanceof OAuth2AuthenticationToken oauth2Token) {
             String registrationId = oauth2Token.getAuthorizedClientRegistrationId();
             log.info("Provider: {}", registrationId);
@@ -34,11 +32,20 @@ public class OAuth2LoginSuccessHandler extends SavedRequestAwareAuthenticationSu
 
             try {
                 switch (registrationId) {
-                    case "google" -> {
-                        log.info("Processing Google login");
+                    case "gitlab" -> {
                         if (principal instanceof OAuth2User oauth2User) {
-                            String googleId = oauth2User.getAttribute("sub");
-                            if (!userService.existsByUsername(googleId)) {
+                            String gitlabId = oauth2User.getAttribute("sub");
+                            // Check if user exists first
+                            if (!userRepository.existsByUsername(gitlabId)) {
+                                userService.createGitLabUser(oauth2User);
+                            }
+                        }
+                    }
+                    case "google" -> {
+                        if (principal instanceof OAuth2User oauth2User) {
+                            String email = oauth2User.getAttribute("email");
+                            // Check if user exists first
+                            if (!userRepository.existsByEmail(email)) {
                                 userService.createGoogleUser(oauth2User);
                             }
                         }
@@ -46,22 +53,15 @@ public class OAuth2LoginSuccessHandler extends SavedRequestAwareAuthenticationSu
                     case "github" -> {
                         if (principal instanceof OAuth2User oauth2User) {
                             String githubId = oauth2User.getAttribute("id").toString();
-                            if (!userService.existsByUsername(githubId)) {
+                            // Check if user exists first
+                            if (!userRepository.existsByUsername(githubId)) {
                                 userService.createGithubUser(oauth2User);
-                            }
-                        }
-                    }
-                    case "gitlab" -> {
-                        if (principal instanceof OAuth2User oauth2User) {
-                            String gitlabId = oauth2User.getAttribute("sub");
-                            if (!userService.existsByUsername(gitlabId)) {
-                                userService.createGitLabUser(oauth2User);
                             }
                         }
                     }
                 }
             } catch (Exception e) {
-                log.error("Error during OAuth2 login: {}", e.getMessage(), e);
+                log.error("Error during OAuth2 login: {}", e.getMessage());
             }
         }
 

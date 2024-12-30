@@ -24,6 +24,9 @@ spring:
             enable: true
   security:
     oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8888
       client:
         registration:
           gitlab:
@@ -34,8 +37,11 @@ spring:
               - profile
               - email
               - read_user
+              - api
+              - read_api
+              - read_repository
+              - write_repository
             authorization-grant-type: authorization_code
-#            redirect-uri: "http://localhost:8888/login/oauth2/code/gitlab"
             client-name: GitLab
           google:
             client-id: 864319511903-8r59oml9rbvjgr1auhsc9bj0bi30f4qo.apps.googleusercontent.com
@@ -67,9 +73,6 @@ spring:
             user-info-uri: https://api.github.com/user
           google:
             user-name-attribute: email
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8888
 
 server:
   port: 8888

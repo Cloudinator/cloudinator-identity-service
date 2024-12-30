@@ -10,7 +10,9 @@
             min-height: 100vh;
             background-color: white;
         }
-
+        .illustration-pattern {
+            background-image: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" fill="%23f3f4f6" /></svg>');
+        }
         .field-error {
             border-color: #EF4444 !important;
         }
@@ -177,9 +179,9 @@
     </div>
 
     <!-- Right Section - Illustration -->
-    <div class="hidden md:block md:w-1/2 bg-purple-50">
+    <div class="hidden md:block md:w-1/2 bg-purple-50 illustration-pattern">
         <div class="h-full flex items-center justify-center p-8">
-            <img th:src="@{/images/login-img.png}" alt="Login illustration" class="max-w-md w-full">
+            <img th:src="@{/images/login-img.png}" alt="Tech Stack" class="max-w-md w-full h-auto object-contain">
         </div>
     </div>
 </div>
