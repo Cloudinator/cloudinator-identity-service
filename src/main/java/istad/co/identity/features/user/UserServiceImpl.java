@@ -3,14 +3,12 @@ package istad.co.identity.features.user;
 import istad.co.identity.domain.Authority;
 import istad.co.identity.domain.User;
 import istad.co.identity.domain.UserAuthority;
-import istad.co.identity.features.administrator.AdministratorRepository;
 import istad.co.identity.features.authority.AuthorityRepository;
 import istad.co.identity.features.emailverification.EmailVerificationTokenService;
 import istad.co.identity.features.user.dto.UserCreateRequest;
 import istad.co.identity.features.user.dto.UserPasswordResetResponse;
 import istad.co.identity.features.user.dto.UserResponse;
 import istad.co.identity.mapper.UserMapper;
-import istad.co.identity.security.repository.JpaRegisteredClientRepository;
 import istad.co.identity.util.RandomTokenGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -97,7 +95,102 @@ public class UserServiceImpl implements UserService{
 
         emailVerificationTokenService.generate(user);
     }
+    private void addDefaultUserAuthority(User user) {
+        UserAuthority defaultUserAuthority = new UserAuthority();
+        defaultUserAuthority.setUser(user);
+        defaultUserAuthority.setAuthority(authorityRepository.AUTH_USER());
 
+        user.setUserAuthorities(new HashSet<>());
+        user.getUserAuthorities().add(defaultUserAuthority);
+
+        userAuthorityRepository.saveAll(user.getUserAuthorities());
+    }
+    private void addCustomAuthorities(User user, Set<String> authorityNames) {
+        if (authorityNames == null || authorityNames.isEmpty()) {
+            return;
+        }
+
+        Set<UserAuthority> customAuthorities = authorityNames.stream()
+                .map(name -> {
+                    Authority authority = authorityRepository
+                            .findByName(name)
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND,
+                                    "Authority has not been found"
+                            ));
+                    UserAuthority userAuthority = new UserAuthority();
+                    userAuthority.setUser(user);
+                    userAuthority.setAuthority(authority);
+                    return userAuthority;
+                })
+                .collect(Collectors.toSet());
+
+        user.getUserAuthorities().addAll(customAuthorities);
+        userAuthorityRepository.saveAll(user.getUserAuthorities());
+    }
+    @Override
+    public UserResponse createOAuth2User(String email, String name, String picture, String provider) {
+        User user = User.builder()
+                .uuid(UUID.randomUUID().toString())
+                .username(generateUsername(email))
+                .email(email)
+                .profileImage(picture)
+                .emailVerified(true)
+                .accountNonExpired(true)
+                .accountNonLocked(true)
+                .credentialsNonExpired(true)
+                .isEnabled(true)
+                .build();
+
+        user = userRepository.save(user);
+
+        // Add default USER authority
+        addDefaultUserAuthority(user);
+
+        // Add OAuth2 specific authority
+        UserAuthority oauth2Authority = new UserAuthority();
+        oauth2Authority.setUser(user);
+        oauth2Authority.setAuthority(authorityRepository.findByName("OAUTH2_USER")
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "OAUTH2_USER authority not found")));
+
+        user.getUserAuthorities().add(oauth2Authority);
+        userAuthorityRepository.saveAll(user.getUserAuthorities());
+
+        return userMapper.toUserResponse(user);
+    }
+
+    @Override
+    public UserResponse findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(userMapper::toUserResponse)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "User not found with email: " + email
+                ));
+    }
+
+    // Add method to map OAuth2 attributes if needed
+    private UserResponse mapOAuth2UserToResponse(OAuth2User oauth2User) {
+        User user = userRepository.findByEmail(oauth2User.getAttribute("email"))
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "OAuth2 user not found"
+                ));
+        return userMapper.toUserResponse(user);
+    }
+    private String extractEmail(OAuth2User oAuth2User, OAuthProvider provider) {
+        return switch (provider) {
+            case GOOGLE -> ((DefaultOidcUser) oAuth2User).getEmail();
+            case GITHUB -> oAuth2User.getAttribute("login") + "@github.com";
+        };
+    }
+
+    private String extractUsername(OAuth2User oAuth2User, OAuthProvider provider) {
+        return switch (provider) {
+            case GOOGLE -> generateUsername(((DefaultOidcUser) oAuth2User).getEmail());
+            case GITHUB -> oAuth2User.getAttribute("login");
+        };
+    }
     @Override
     public void isNotAuthenticated(Authentication authentication) {
 
@@ -239,15 +332,23 @@ public class UserServiceImpl implements UserService{
 
 
     // Add a new method specifically for Google users
-    @Transactional
+    @Override
     public UserResponse createGoogleUser(DefaultOidcUser oidcUser) {
+        // Check if user already exists
+        try {
+            return findByEmail(oidcUser.getEmail());
+        } catch (ResponseStatusException e) {
+            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
+                throw e;
+            }
+        }
+
+        // Create new user if not found
         User user = User.builder()
                 .uuid(UUID.randomUUID().toString())
                 .username(generateUsername(oidcUser.getEmail()))
                 .email(oidcUser.getEmail())
-//                .fullName(oidcUser.getFullName())
-                .profileImage(oidcUser.getPicture()) // Use Google profile picture
-//                .coverImage("users/cover.png")
+                .profileImage(oidcUser.getPicture())
                 .emailVerified(true)
                 .accountNonExpired(true)
                 .accountNonLocked(true)
@@ -256,19 +357,16 @@ public class UserServiceImpl implements UserService{
                 .build();
 
         user = userRepository.save(user);
+        addDefaultUserAuthority(user);
 
-        // Set up default authority - USER
-        UserAuthority defaultUserAuthority = new UserAuthority();
-        defaultUserAuthority.setUser(user);
-        defaultUserAuthority.setAuthority(authorityRepository.AUTH_USER());
-
-        user.setUserAuthorities(new HashSet<>());
-        user.getUserAuthorities().add(defaultUserAuthority);
-
-        userAuthorityRepository.saveAll(user.getUserAuthorities());
+        // Add OAuth2 specific authority
+        Set<String> oauthAuthorities = Set.of("OAUTH2_USER");
+        addCustomAuthorities(user, oauthAuthorities);
 
         return userMapper.toUserResponse(user);
     }
+
+
     @Override
     public UserResponse createGithubUser(OAuth2User oAuth2User) {
         User user = User.builder()

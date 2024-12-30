@@ -2,6 +2,9 @@ package istad.co.identity.security;
 
 
 import istad.co.identity.domain.User;
+import istad.co.identity.domain.UserAuthority;
+import istad.co.identity.features.authority.AuthorityRepository;
+import istad.co.identity.features.user.UserAuthorityRepository;
 import istad.co.identity.features.user.UserRepository;
 import istad.co.identity.security.custom.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +44,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -53,10 +57,11 @@ import java.util.*;
 @Slf4j
 public class SecurityConfig {
 
-
+    private final UserRepository userRepository;
+    private final AuthorityRepository authorityRepository;
+    private final UserAuthorityRepository userAuthorityRepository;
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
 
 
     @Bean
@@ -164,69 +169,31 @@ public class SecurityConfig {
 SecurityFilterChain configureHttpSecurity(HttpSecurity http) throws Exception {
     http
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                            "/login",
-                            "/login/oauth2/code/*",
-                            "/oauth2/**",
-                            "/error",
-                            "/register",
-                            "/otp/**",
-                            "/resend-otp",
-                            "/forget-password",
-                            "/reset-pwd-otp",
-                            "/reset-password",
-                            "/google",
-                            "/facebook",
-                            "/github",
-                            "/images/**",
-                            "/webjars/**",
-                            "/me",              // Add these
-                            "/user/details",    // new
-                            "/user/token" ,
-                            "/api/github/**"// endpoints
-                    ).permitAll()
                     .anyRequest().authenticated()
             )
-//            .formLogin(form -> form
-//                    .loginPage("/login")
-//                    .loginProcessingUrl("/login")
-////                    .defaultSuccessUrl("http://localhost:8888/", true)
-//                    .defaultSuccessUrl("/login?success=true", false)
-//                    .failureUrl("/login?error=true")
-//            )
             .formLogin(form -> form
                     .loginPage("/login")
                     .loginProcessingUrl("/login")
-                    .defaultSuccessUrl("http://localhost:8888", true)  // Change this
+                    .defaultSuccessUrl("/login?success=true", false)// Change this
                     .failureUrl("/login?error=true")
             )
             .oauth2Login(oauth2 -> oauth2
                     .loginPage("/login")
-                    .defaultSuccessUrl("http://localhost:8888", true)  // And this
+                    .defaultSuccessUrl("/login?success=true", false)
                     .userInfoEndpoint(userInfo -> userInfo
-                            .userService(oauth2UserService()))
+                            .userService(oauth2UserService())
+                    )
                     .failureHandler((request, response, exception) -> {
                         log.error("OAuth2 authentication failed: ", exception);
                         response.sendRedirect("/login?error=oauth2");
                     })
             )
-//            .oauth2Login(oauth2 -> oauth2
-//                    .loginPage("/login")
-////                    .defaultSuccessUrl("http://localhost:8888/", true)
-//                    .defaultSuccessUrl("/login?success=true", false)
-//                    .userInfoEndpoint(userInfo -> userInfo
-//                            .userService(oauth2UserService()))
-//                    .failureHandler((request, response, exception) -> {
-//                        log.error("OAuth2 authentication failed: ", exception);
-//                        response.sendRedirect("/login?error=oauth2");
-//                    })
-//            )
             .oauth2ResourceServer(oauth2 -> oauth2
                     .jwt(Customizer.withDefaults())
             )
             .logout(logout -> logout
                     .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                    .logoutSuccessUrl("http://localhost:8888")
+                    .logoutSuccessUrl("http://localhost:8888?logout=true")
                     .clearAuthentication(true)
                     .invalidateHttpSession(true)
                     .deleteCookies("JSESSIONID")
@@ -241,194 +208,155 @@ SecurityFilterChain configureHttpSecurity(HttpSecurity http) throws Exception {
 }
 
     @Bean
+    OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
+        return context -> {
+            Authentication authentication = context.getPrincipal();
+            Object principal = authentication.getPrincipal();
+
+            if (context.getTokenType().getValue().equals("id_token")) {
+                if (principal instanceof CustomUserDetails customUserDetails) {
+                    addCustomUserClaims(context, customUserDetails);
+                } else if (principal instanceof DefaultOidcUser oidcUser) {
+                    addGoogleUserClaims(context, oidcUser);
+                } else if (principal instanceof DefaultOAuth2User oauth2User) {
+                    addGithubUserClaims(context, oauth2User);
+                }
+            }
+
+            if (context.getTokenType().getValue().equals("access_token")) {
+                addStandardClaims(context, authentication);
+
+                if (principal instanceof CustomUserDetails customUserDetails) {
+                    addCustomUserClaims(context, customUserDetails);
+                } else if (principal instanceof DefaultOidcUser oidcUser) {
+                    addGoogleUserClaims(context, oidcUser);
+                } else if (principal instanceof DefaultOAuth2User oauth2User) {
+                    addGithubUserClaims(context, oauth2User);
+                }
+            }
+        };
+    }
+    @Bean
     public OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService() {
-        DefaultOAuth2UserService delegate = new DefaultOAuth2UserService() {
-            @Override
-            public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-                if ("facebook".equals(userRequest.getClientRegistration().getRegistrationId())) {
-                    try {
-                        String accessToken = userRequest.getAccessToken().getTokenValue();
-                        String appSecret = userRequest.getClientRegistration().getClientSecret();
+        DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
 
-                        // Generate appsecret_proof
-                        String appsecretProof = generateAppSecretProof(accessToken, appSecret);
+        return userRequest -> {
+            OAuth2User oauth2User = delegate.loadUser(userRequest);
+            String registrationId = userRequest.getClientRegistration().getRegistrationId();
 
-                        // Build Facebook Graph API URL with appsecret_proof
-                        String graphURL = userRequest.getClientRegistration().getProviderDetails()
-                                .getUserInfoEndpoint().getUri();
-                        graphURL = String.format("%s?fields=id,name,email,picture&access_token=%s&appsecret_proof=%s",
-                                graphURL, accessToken, appsecretProof);
+            if ("google".equals(registrationId)) {
+                String email = oauth2User.getAttribute("email");
+                String name = oauth2User.getAttribute("name");
+                String picture = oauth2User.getAttribute("picture");
 
-                        RestTemplate restTemplate = new RestTemplate();
-                        HttpHeaders headers = new HttpHeaders();
-                        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+                try {
+                    return userRepository.findByEmail(email)
+                            .map(existingUser -> oauth2User)  // If user exists, return original oauth2User
+                            .orElseGet(() -> {
+                                // Create new user
+                                User user = User.builder()
+                                        .uuid(UUID.randomUUID().toString())
+                                        .username(generateUniqueUsername(oauth2User.getAttribute("name")))
+                                        .email(email)
+                                        .profileImage(oauth2User.getAttribute("picture"))
+                                        .emailVerified(true)
+                                        .accountNonExpired(true)
+                                        .accountNonLocked(true)
+                                        .credentialsNonExpired(true)
+                                        .isEnabled(true)
+                                        .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                                        .build();
 
-                        HttpEntity<String> entity = new HttpEntity<>("", headers);
-                        ResponseEntity<Map> response = restTemplate.exchange(graphURL, HttpMethod.GET, entity, Map.class);
-
-                        Map<String, Object> attributes = response.getBody();
-                        return new DefaultOAuth2User(
-                                Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
-                                attributes,
-                                "id"
-                        );
-                    } catch (Exception ex) {
-                        log.error("Error fetching Facebook user info: ", ex);
-                        throw new OAuth2AuthenticationException(
-                                new OAuth2Error("user_info_error"),
-                                "Error fetching user info from Facebook",
-                                ex
-                        );
-                    }
+                                user = userRepository.save(user);
+                                addDefaultUserAuthority(user);
+                                return oauth2User;
+                            });
+                } catch (Exception e) {
+                    log.error("Error creating Google user:", e);
+                    throw new OAuth2AuthenticationException(
+                            new OAuth2Error("user_creation_error", "Could not create user", null)
+                    );
                 }
-                return super.loadUser(userRequest);
-            }
-        };
+            } else if ("github".equals(registrationId)) {
+                String login = oauth2User.getAttribute("login");
+                String name = oauth2User.getAttribute("name");
+                String avatarUrl = oauth2User.getAttribute("avatar_url");
+                String email = login + "istad@github.com";
 
-        return delegate;
+                try {
+                    return userRepository.findByEmail(email)
+                            .map(existingUser -> oauth2User)  // If user exists, return original oauth2User
+                            .orElseGet(() -> {
+                                // Create new user
+                                User user = User.builder()
+                                        .uuid(UUID.randomUUID().toString())
+                                        .username(generateUniqueUsername(oauth2User.getAttribute("name")))
+                                        .email(email)
+                                        .profileImage(oauth2User.getAttribute("picture"))
+                                        .emailVerified(true)
+                                        .accountNonExpired(true)
+                                        .accountNonLocked(true)
+                                        .credentialsNonExpired(true)
+                                        .isEnabled(true)
+                                        .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                                        .build();
+
+                                user = userRepository.save(user);
+                                addDefaultUserAuthority(user);
+                                return oauth2User;
+                            });
+                } catch (Exception e) {
+                    log.error("Error creating Google user:", e);
+                    throw new OAuth2AuthenticationException(
+                            new OAuth2Error("user_creation_error", "Could not create user", null)
+                    );
+                }
+            }
+
+            return oauth2User;
+        };
     }
 
-    private String generateAppSecretProof(String accessToken, String appSecret) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(appSecret.getBytes(), "HmacSHA256");
-            mac.init(secretKeySpec);
-            byte[] bytes = mac.doFinal(accessToken.getBytes());
-            return bytesToHex(bytes);
-        } catch (Exception e) {
-            throw new RuntimeException("Error generating appsecret_proof", e);
+    private String generateUsername(String email) {
+        String baseUsername = email.split("@")[0];
+        String username = baseUsername;
+        int counter = 1;
+
+        while (userRepository.existsByUsername(username)) {
+            username = baseUsername + counter++;
         }
+
+        return username;
     }
 
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder builder = new StringBuilder();
-        for (byte b : bytes) {
-            builder.append(String.format("%02x", b));
-        }
-        return builder.toString();
+    private void addDefaultUserAuthority(User user) {
+        UserAuthority defaultUserAuthority = new UserAuthority();
+        defaultUserAuthority.setUser(user);
+        defaultUserAuthority.setAuthority(authorityRepository.findByName("USER")
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "USER authority not found")));
+
+        user.setUserAuthorities(new HashSet<>());
+        user.getUserAuthorities().add(defaultUserAuthority);
+
+        // Add OAuth2 authority
+        UserAuthority oauth2Authority = new UserAuthority();
+        oauth2Authority.setUser(user);
+        oauth2Authority.setAuthority(authorityRepository.findByName("OAUTH2_USER")
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "OAUTH2_USER authority not found")));
+        user.getUserAuthorities().add(oauth2Authority);
+
+        userAuthorityRepository.saveAll(user.getUserAuthorities());
     }
-
-    private OAuth2User processFacebookUser(OAuth2User oauth2User, String email) {
-        User userEntity = userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    User newUser = new User();
-                    newUser.setUuid(UUID.randomUUID().toString());
-                    newUser.setEmail(email);
-                    newUser.setUsername(email);
-                    newUser.setEmailVerified(true);
-                    newUser.setIsEnabled(true);
-                    return userRepository.save(newUser);
-                });
-
-        Set<GrantedAuthority> authorities = new HashSet<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-
-        Map<String, Object> attributes = new HashMap<>(oauth2User.getAttributes());
-        attributes.put("userUuid", userEntity.getUuid());
-
-        return new DefaultOAuth2User(authorities, attributes, "id");
-    }
-
-    private OAuth2User processGithubUser(OAuth2User oauth2User) {
-        String login = oauth2User.getAttribute("login");
-        String email = login + "@github.com";
-
-        User userEntity = userRepository.findByUsername(login)
-                .orElseGet(() -> {
-                    User newUser = new User();
-                    newUser.setUuid(UUID.randomUUID().toString());
-                    newUser.setUsername(login);
-                    newUser.setEmail(email);
-                    newUser.setEmailVerified(true);
-                    newUser.setIsEnabled(true);
-                    return userRepository.save(newUser);
-                });
-
-        Set<GrantedAuthority> authorities = new HashSet<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-
-        Map<String, Object> attributes = new HashMap<>(oauth2User.getAttributes());
-        attributes.put("userUuid", userEntity.getUuid());
-
-        return new DefaultOAuth2User(authorities, attributes, "login");
-    }
-    @Bean
-    OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
-        return context -> {
-            Authentication authentication = context.getPrincipal();
-            Object principal = authentication.getPrincipal();
-
-            if (context.getTokenType().getValue().equals("id_token")) {
-                if (principal instanceof CustomUserDetails customUserDetails) {
-                    addCustomUserClaims(context, customUserDetails);
-                } else if (principal instanceof DefaultOidcUser oidcUser) {
-                    addGoogleUserClaims(context, oidcUser);
-                } else if (principal instanceof DefaultOAuth2User oauth2User) {
-                    // Get registration ID from OAuth2AuthenticationToken
-                    if (authentication instanceof OAuth2AuthenticationToken oauth2Authentication) {
-                        String registrationId = oauth2Authentication.getAuthorizedClientRegistrationId();
-                        switch (registrationId) {
-                            case "github" -> addGithubUserClaims(context, oauth2User);
-                            case "facebook" -> addFacebookUserClaims(context, oauth2User);
-                        }
-                    }
-                }
-            }
-
-            if (context.getTokenType().getValue().equals("access_token")) {
-                addStandardClaims(context, authentication);
-
-                if (principal instanceof CustomUserDetails customUserDetails) {
-                    addCustomUserClaims(context, customUserDetails);
-                } else if (principal instanceof DefaultOidcUser oidcUser) {
-                    addGoogleUserClaims(context, oidcUser);
-                } else if (principal instanceof DefaultOAuth2User oauth2User) {
-                    // Get registration ID from OAuth2AuthenticationToken
-                    if (authentication instanceof OAuth2AuthenticationToken oauth2Authentication) {
-                        String registrationId = oauth2Authentication.getAuthorizedClientRegistrationId();
-                        switch (registrationId) {
-                            case "github" -> addGithubUserClaims(context, oauth2User);
-                            case "facebook" -> addFacebookUserClaims(context, oauth2User);
-                        }
-                    }
-                }
-            }
-        };
-    }
-    @Bean
-    OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
-        return context -> {
-            Authentication authentication = context.getPrincipal();
-            Object principal = authentication.getPrincipal();
-
-            if (context.getTokenType().getValue().equals("id_token")) {
-                if (principal instanceof CustomUserDetails customUserDetails) {
-                    addCustomUserClaims(context, customUserDetails);
-                } else if (principal instanceof DefaultOidcUser oidcUser) {
-                    addGoogleUserClaims(context, oidcUser);
-                } else if (principal instanceof DefaultOAuth2User oidcUser) {
-                    addGithubUserClaims(context, oauth2User);
-                } else if (principal instanceof DefaultOAuth2User oAuth2User) {
-                    addFacebookUserClaims(context, oAuth2User);
-                }
-            }
-
-            if (context.getTokenType().getValue().equals("access_token")) {
-                addStandardClaims(context, authentication);
-
-                if (principal instanceof CustomUserDetails customUserDetails) {
-                    addCustomUserClaims(context, customUserDetails);
-                } else if (principal instanceof DefaultOidcUser oidcUser) {
-                    addGoogleUserClaims(context, oidcUser);
-                } else if (principal instanceof DefaultOAuth2User oauth2User) {
-                    addGithubUserClaims(context, oauth2User);
-                }
-            }
-        };
-    }
-
     private void addStandardClaims(JwtEncodingContext context, Authentication authentication) {
         Set<String> scopes = new HashSet<>(context.getAuthorizedScopes());
+
+        // Add a default USER role for OAuth2 users
+        if (authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("OAUTH2_USER"))) {
+            scopes.add("USER");
+        }
+
+        // Add other authorities
         authentication.getAuthorities()
                 .forEach(auth -> scopes.add(auth.getAuthority()));
 
@@ -467,27 +395,7 @@ SecurityFilterChain configureHttpSecurity(HttpSecurity http) throws Exception {
                 );
 
     }
-private void addFacebookUserClaims(JwtEncodingContext context, DefaultOAuth2User user) {
-    String email = user.getAttribute("email");
-    log.debug("Processing Facebook claims for email: {}", email);
 
-    userRepository.findByEmail(email)
-            .ifPresentOrElse(
-                    userEntity -> {
-                        context.getClaims()
-                                .claim("userUuid", userEntity.getUuid())
-                                .claim("username", userEntity.getUsername())
-                                .claim("email", userEntity.getEmail());
-                        log.debug("Added claims for existing user: {}", userEntity.getEmail());
-                    },
-                    () -> {
-                        context.getClaims()
-                                .claim("email", email)
-                                .claim("name", user.getAttribute("name"));
-                        log.debug("Added claims for new Facebook user: {}", email);
-                    }
-            );
-}
     private void addGithubUserClaims(JwtEncodingContext context, DefaultOAuth2User user) {
         Map<String, Object> claims = new HashMap<>();
 
@@ -507,7 +415,40 @@ private void addFacebookUserClaims(JwtEncodingContext context, DefaultOAuth2User
 
         claims.forEach((key, value) -> context.getClaims().claim(key, value));
     }
+    private String generateUniqueUsername(String fullName) {
+        // Remove spaces and special characters
+        String baseUsername = sanitizeUsername(fullName);
 
+        // If the base username is empty (rare case), use a default
+        if (baseUsername.isEmpty()) {
+            baseUsername = "user";
+        }
+
+        String username = baseUsername;
+        int counter = 1;
+
+        // Keep trying until we find a unique username
+        while (userRepository.existsByUsername(username)) {
+            // Add random numbers to make it more unique
+            username = baseUsername + counter + new Random().nextInt(1000);
+            counter++;
+        }
+
+        return username;
+    }
+    private String sanitizeUsername(String username) {
+        // Remove any whitespace
+        username = username.trim().replaceAll("\\s+", "");
+
+        // Convert to proper case (first letter capital, rest lowercase)
+        if (!username.isEmpty()) {
+            username = username.substring(0, 1).toUpperCase() +
+                    username.substring(1).toLowerCase();
+        }
+
+        // Remove any special characters
+        username = username.replaceAll("[^a-zA-Z0-9]", "");
+
+        return username;
+    }
 }
-
-

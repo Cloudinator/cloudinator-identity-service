@@ -29,10 +29,23 @@ public class User extends Auditable<String> {
     @Column(nullable = false, unique = true, length = 256)
     private String email;
 
-    @Column(nullable = false, length = 256)
+    @Column(nullable = true, length = 256)
     private String password;
 
+    @Column(unique = true, length = 256)
+    private String facebookId;
 
+    @Column(unique = true, length = 256)
+    private String googleId;
+
+    @Column(unique = true, length = 256)
+    private String xId;
+
+    @Column(unique = true, length = 256)
+    private String telegramId;
+
+    @Column(unique = true, length = 256)
+    private String appleId;
 
     @Column(length = 256)
     private String profileImage;

@@ -50,7 +50,7 @@ public class Init {
             authorityRepository.save(user);
 
             Authority system = new Authority();
-            system.setName("SYSTEM");
+            system.setName("OAUTH2_USER");
             authorityRepository.save(system);
 
             Authority admin = new Authority();
@@ -103,7 +103,7 @@ public class Init {
 
     @PostConstruct
     void initOAuth2() {
-        if (clientRepository.count() < 1) {
+        if(clientRepository.count() < 1) {
             TokenSettings tokenSettings = TokenSettings.builder()
                     .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
                     .accessTokenTimeToLive(Duration.ofMinutes(30))  // Increased time
