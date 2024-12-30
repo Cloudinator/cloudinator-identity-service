@@ -7,6 +7,7 @@ import lombok.Builder;
 public record UserResponse(
         String username,
         String email,
-        String profileImage
+        String profileImage,
+        boolean emailVerified
 ) {
 }

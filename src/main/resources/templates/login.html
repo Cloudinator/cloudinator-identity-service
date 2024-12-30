@@ -11,8 +11,21 @@
             background-color: white;
         }
 
-        .illustration-pattern {
-            background-image: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" fill="%23f3f4f6" /></svg>');
+        .field-error {
+            border-color: #EF4444 !important;
+        }
+
+        .error-message {
+            color: #EF4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .error-icon {
+            color: #EF4444;
+            margin-right: 0.5rem;
         }
 
         @media (max-width: 768px) {
@@ -27,14 +40,6 @@
     <!-- Left Section - Login Form -->
     <div class="w-full md:w-1/2 p-4 sm:p-6 md:p-8 lg:p-12 xl:p-16 flex flex-col justify-center">
         <div class="max-w-md mx-auto w-full">
-            <!-- Back Button -->
-            <button class="text-gray-600 flex items-center mb-6 md:mb-8 hover:text-gray-800 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9.707 4.293a1 1 0 010 1.414L7.414 8H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-                <span class="text-sm">Back</span>
-            </button>
-
             <!-- Logo -->
             <img th:src="@{/images/logo.png}" alt="Logo" class="h-16 md:h-20 w-auto mb-6 md:mb-8">
 
@@ -43,51 +48,90 @@
             <p class="text-gray-600 mb-8">Please enter login details below</p>
 
             <!-- Login Form -->
-            <form th:action="@{/login}" method="post" class="space-y-6" id="loginForm">
+            <form id="loginForm" th:action="@{/login}" method="post" class="space-y-6">
                 <!-- Username Field -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Username</label>
-                    <input
-                            type="text"
-                            name="username"
-                            th:value="${username}"
-                            placeholder="Enter your username"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                            required>
+                    <label class="block text-sm font-medium text-gray-700">
+                        Username <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input
+                                type="text"
+                                name="username"
+                                id="username"
+                                th:value="${username}"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                                placeholder="Enter your username"
+                        >
+                        <div class="error-message hidden" id="username-error">
+                            <svg class="error-icon w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10" fill="currentColor"/>
+                                <text x="12" y="16" text-anchor="middle" fill="white" font-size="14" font-weight="bold">!</text>
+                            </svg>
+                            Please fill out this field.
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Password Field -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <label class="block text-sm font-medium text-gray-700">
+                        Password <span class="text-red-500">*</span>
+                    </label>
                     <div class="relative">
                         <input
                                 type="password"
                                 name="password"
                                 id="password"
-                                th:value="${password}"
-                                placeholder="Enter your password"
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all pr-12"
-                                required>
+                                placeholder="Enter your password"
+                        >
                         <button
                                 type="button"
                                 onclick="togglePassword()"
                                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="eye-icon">
+                            <svg id="eye-icon" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                         </button>
+                        <div class="error-message hidden" id="password-error">
+                            <svg class="error-icon w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10" fill="currentColor"/>
+                                <text x="12" y="16" text-anchor="middle" fill="white" font-size="14" font-weight="bold">!</text>
+                            </svg>
+                            Please fill out this field.
+                        </div>
+                        <div class="error-message hidden" id="password-length-error">
+                            <svg class="error-icon w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10" fill="currentColor"/>
+                                <text x="12" y="16" text-anchor="middle" fill="white" font-size="14" font-weight="bold">!</text>
+                            </svg>
+                            Password must be at least 6 characters
+                        </div>
                     </div>
-                    <a href="/forgot-password" class="block text-right text-sm text-purple-600 hover:text-purple-700 transition-colors">Forgot password?</a>
+                    <div class="flex justify-end">
+                        <a href="/forgot-password" class="text-sm text-purple-600 hover:text-purple-700">
+                            Forgot password?
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Error Message -->
-                <div th:if="${error}" class="text-red-500 text-sm bg-red-50 p-3 rounded-lg" th:text="${error}"></div>
+                <div th:if="${error}" class="bg-red-50 text-red-700 p-4 rounded-lg flex items-start">
+                    <svg class="error-icon w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="12" r="10" fill="currentColor"/>
+                        <text x="12" y="16" text-anchor="middle" fill="white" font-size="14" font-weight="bold">!</text>
+                    </svg>
+                    <span th:text="${error}">Error message</span>
+                </div>
 
-                <!-- Sign In Button -->
-                <button type="submit"
-                        class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
+                <!-- Submit Button -->
+                <button
+                        type="submit"
+                        class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                >
                     Sign In
                 </button>
             </form>
@@ -133,14 +177,69 @@
     </div>
 
     <!-- Right Section - Illustration -->
-    <div class="hidden md:block md:w-1/2 bg-purple-50 illustration-pattern">
+    <div class="hidden md:block md:w-1/2 bg-purple-50">
         <div class="h-full flex items-center justify-center p-8">
-            <img th:src="@{/images/login-img.png}" alt="Tech Stack" class="max-w-md w-full h-auto object-contain">
+            <img th:src="@{/images/login-img.png}" alt="Login illustration" class="max-w-md w-full">
         </div>
     </div>
 </div>
 
 <script th:inline="javascript">
+    // Form validation
+    const form = document.getElementById('loginForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const usernameError = document.getElementById('username-error');
+    const passwordError = document.getElementById('password-error');
+    const passwordLengthError = document.getElementById('password-length-error');
+
+    function validateField(input, errorElement, lengthErrorElement = null, minLength = 0) {
+        if (!input.value.trim()) {
+            input.classList.add('field-error');
+            errorElement.classList.remove('hidden');
+            if (lengthErrorElement) {
+                lengthErrorElement.classList.add('hidden');
+            }
+            return false;
+        }
+
+        if (minLength > 0 && input.value.length < minLength) {
+            input.classList.add('field-error');
+            errorElement.classList.add('hidden');
+            if (lengthErrorElement) {
+                lengthErrorElement.classList.remove('hidden');
+            }
+            return false;
+        }
+
+        input.classList.remove('field-error');
+        errorElement.classList.add('hidden');
+        if (lengthErrorElement) {
+            lengthErrorElement.classList.add('hidden');
+        }
+        return true;
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const isUsernameValid = validateField(usernameInput, usernameError);
+        const isPasswordValid = validateField(passwordInput, passwordError, passwordLengthError, 6);
+
+        if (isUsernameValid && isPasswordValid) {
+            this.submit();
+        }
+    });
+
+    // Clear errors on input
+    usernameInput.addEventListener('input', function() {
+        validateField(this, usernameError);
+    });
+
+    passwordInput.addEventListener('input', function() {
+        validateField(this, passwordError, passwordLengthError, 6);
+    });
+
     // Password visibility toggle
     function togglePassword() {
         const passwordInput = document.getElementById('password');
@@ -149,38 +248,16 @@
         if (passwordInput.type === 'password') {
             passwordInput.type = 'text';
             eyeIcon.innerHTML = `
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-            `;
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                `;
         } else {
             passwordInput.type = 'password';
             eyeIcon.innerHTML = `
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            `;
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                `;
         }
     }
-
-    // Form submission and error logging
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        const username = this.querySelector('input[name="username"]').value;
-        const password = this.querySelector('input[name="password"]').value;
-
-        console.log('Login attempt:', { username, password: '****' });
-
-        // Log any error message if present
-        const errorElement = document.querySelector('[th\\:text="${error}"]');
-        if (errorElement && errorElement.textContent) {
-            console.log('Login Error:', errorElement.textContent);
-        }
-    });
-
-    // Log any error message on page load
-    window.addEventListener('load', function() {
-        const errorElement = document.querySelector('[th\\:text="${error}"]');
-        if (errorElement && errorElement.textContent) {
-            console.log('Login Error:', errorElement.textContent);
-        }
-    });
 </script>
 </body>
 </html>

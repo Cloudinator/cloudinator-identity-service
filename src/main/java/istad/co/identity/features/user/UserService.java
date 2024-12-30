@@ -16,7 +16,6 @@ public interface UserService {
     void createNewUser(UserCreateRequest userCreateRequest);
 
 
-    UserResponse createOAuth2User(String email, String name, String picture, String provider);
 
     UserResponse findByEmail(String email);
 
@@ -36,9 +35,9 @@ public interface UserService {
 
     void checkTermsAndConditions(String value);
 
-    void existsByUsername(String username);
+    boolean existsByUsername(String username);
 
-    void existsByEmail(String email);
+    boolean existsByEmail(String email);
     void checkConfirmPasswords(String password, String confirmPassword);
 
 
@@ -46,7 +45,18 @@ public interface UserService {
     void verifyEmail(User user);
 
     void checkForOldPassword(String username, String oldPassword);
+
+
+    @Transactional
+    UserResponse createGitLabUser(OAuth2User oidcUser);
+
+    // login with third party
     UserResponse createGoogleUser(DefaultOidcUser oidcUser);
 
+    @Transactional
+    UserResponse createGoogleUser(OAuth2User oauth2User);
+
     UserResponse createGithubUser(OAuth2User oidcUser);
+
+    UserResponse getAuthenticatedUser(Authentication authentication);
 }

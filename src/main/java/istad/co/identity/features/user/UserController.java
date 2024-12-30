@@ -7,7 +7,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -25,15 +27,20 @@ public class UserController {
     @PostMapping
     void createNew(@Valid @RequestBody UserCreateRequest userCreateRequest) {
 
-
-
-//        gitLabServiceFein.createUser(userCreateRequest.username() , userCreateRequest.email(), userCreateRequest.password());
+        gitLabServiceFein.createUser(userCreateRequest.username() , userCreateRequest.email(), userCreateRequest.password());
 
         userService.createNewUser(userCreateRequest);
     }
 
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getMe(Authentication authentication) {
+        return ResponseEntity.ok(userService.getAuthenticatedUser(authentication));
+    }
 
-//    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+
+
+    //    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
     @PutMapping("/{username}/reset-password")
     UserPasswordResetResponse resetPassword(@PathVariable String username) {
         return userService.resetPassword(username);
@@ -61,7 +68,7 @@ public class UserController {
         return userService.findList(pageNumber, pageSize);
     }
 
-//    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    //    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{username}")
     UserResponse findByUsername(@PathVariable String username) {

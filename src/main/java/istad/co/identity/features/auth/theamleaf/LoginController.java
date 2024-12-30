@@ -2,7 +2,12 @@ package istad.co.identity.features.auth.theamleaf;
 
 import istad.co.identity.features.auth.AuthService;
 import istad.co.identity.features.auth.dto.LoginRequest;
+import istad.co.identity.features.user.UserService;
 import istad.co.identity.features.user.dto.UserResponse;
+import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,37 +16,88 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
 @Controller
+@Slf4j
+@RequiredArgsConstructor
 public class LoginController {
-
     private final AuthService authService;
-
-    public LoginController(AuthService authService) {
-        this.authService = authService;
-    }
-
+    private final UserService userService;
     @GetMapping("/login")
-    public String showLoginPage() {
+    public String showLoginPage(@RequestParam(required = false) String error,
+                                @RequestParam(required = false) String verified,
+                                Model model) {
+        if (error != null) {
+            model.addAttribute("error", "Invalid credentials");
+        }
+        if ("true".equals(verified)) {
+            model.addAttribute("successMessage", "Email verified successfully! You can now log in.");
+        }
         return "login";
     }
 
     @PostMapping("/login")
     public String handleLogin(@RequestParam String username,
                               @RequestParam String password,
-                              Model model) {
+                              Model model,
+                              HttpSession session) {
         try {
+            log.info("Attempting login for user: {}", username);
             LoginRequest loginRequest = new LoginRequest(username, password);
-            UserResponse response = authService.login(loginRequest);
 
-            // Log successful login
-            System.out.println("Successful login for user: " + username);
+            // First check if user exists
+            try {
+                UserResponse user = userService.findByUsername(username);
 
-            return "redirect:/dashboard";
+                // Check email verification
+                if (!user.emailVerified()) {
+                    log.warn("Login attempt for unverified email: {}", username);
+                    model.addAttribute("error", "Please verify your email before logging in");
+                    model.addAttribute("verificationNeeded", true);
+                    model.addAttribute("username", username);
+                    return "login";
+                }
+
+                // Attempt login
+                UserResponse response = authService.login(loginRequest);
+                if (response != null) {
+                    log.info("Login successful for user: {}", username);
+                    session.setAttribute("user", response);
+                    return "redirect:/dashboard";
+                }
+            } catch (ResponseStatusException e) {
+                if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                    log.warn("Login attempt with non-existent username: {}", username);
+                    model.addAttribute("error", "Username not found");
+                    model.addAttribute("username", username);
+                    return "login";
+                }
+                throw e;
+            }
+
+            model.addAttribute("error", "Invalid credentials");
+            return "login";
+
         } catch (ResponseStatusException e) {
-            // Log failed login attempt
-            System.out.println("Failed login attempt for user: " + username +
-                    " - Error: " + e.getReason());
+            String errorMessage = switch (e.getStatusCode().value()) {
+                case 401 -> {
+                    log.warn("Invalid password attempt for user: {}", username);
+                    yield "Invalid password";
+                }
+                case 403 -> {
+                    log.warn("Login attempt for unverified account: {}", username);
+                    model.addAttribute("verificationNeeded", true);
+                    yield "Your account is not verified. Please check your email";
+                }
+                case 423 -> {
+                    log.warn("Login attempt for locked account: {}", username);
+                    yield "Account is locked. Please contact support";
+                }
+                default -> {
+                    log.error("Unexpected error during login for user {}: {}", username, e.getMessage());
+                    yield "An error occurred. Please try again";
+                }
+            };
 
-            model.addAttribute("error", e.getReason());
+            model.addAttribute("error", errorMessage);
             model.addAttribute("username", username);
             return "login";
         }

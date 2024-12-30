@@ -44,13 +44,62 @@ public class UserServiceImpl implements UserService{
     public final GitLabServiceFein gitLabServiceFein;
 
     @Override
+    @Transactional
     public void createNewUser(UserCreateRequest userCreateRequest) {
+        log.info("Creating new user with username: {}", userCreateRequest.username());
 
+        // Validate unique constraints
+        validateNewUser(userCreateRequest);
 
-        this.existsByUsername(userCreateRequest.username());
-        this.existsByEmail(userCreateRequest.email());
+        try {
+            // Create user
+            User user = userMapper.fromUserCreationRequest(userCreateRequest);
+            setupNewUser(user, userCreateRequest);
 
-        User user = userMapper.fromUserCreationRequest(userCreateRequest);
+            // Save user
+            user = userRepository.save(user);
+
+            // Add authorities
+            addUserAuthorities(user, userCreateRequest);
+
+            // Create GitLab user if needed
+//            createGitLabUser(user, userCreateRequest);
+
+            // Generate and send verification email
+            emailVerificationTokenService.generate(user);
+
+            log.info("Successfully created new user: {}", user.getUsername());
+        } catch (Exception e) {
+            log.error("Error creating new user: {}", e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to create user: " + e.getMessage());
+        }
+    }
+
+    private void validateNewUser(UserCreateRequest userCreateRequest) {
+        // Check if username exists
+        if (userRepository.existsByUsername(userCreateRequest.username())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+        }
+
+        // Check if email exists
+        if (userRepository.existsByEmail(userCreateRequest.email())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+        }
+
+        // Validate password match
+        if (!userCreateRequest.password().equals(userCreateRequest.confirmedPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Passwords do not match");
+        }
+
+        // Validate terms acceptance
+        if (!"true".equalsIgnoreCase(userCreateRequest.acceptTerms())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "You must accept the terms and conditions");
+        }
+    }
+
+    private void setupNewUser(User user, UserCreateRequest userCreateRequest) {
         user.setUuid(UUID.randomUUID().toString());
         user.setPassword(passwordEncoder.encode(userCreateRequest.password()));
         user.setProfileImage("default.png");
@@ -59,30 +108,25 @@ public class UserServiceImpl implements UserService{
         user.setAccountNonLocked(true);
         user.setCredentialsNonExpired(true);
         user.setIsEnabled(true);
+        user.setUserAuthorities(new HashSet<>());
+    }
 
-        user = userRepository.save(user);
-
+    private void addUserAuthorities(User user, UserCreateRequest userCreateRequest) {
+        // Add default USER authority
         UserAuthority defaultUserAuthority = new UserAuthority();
         defaultUserAuthority.setUser(user);
         defaultUserAuthority.setAuthority(authorityRepository.AUTH_USER());
-
-        user.setUserAuthorities(new HashSet<>());
         user.getUserAuthorities().add(defaultUserAuthority);
-        checkConfirmPasswords(userCreateRequest.password(),userCreateRequest.confirmedPassword());
-        checkTermsAndConditions(userCreateRequest.acceptTerms());
 
-        if (userCreateRequest.authorities() != null) {
-            final User finalUser = user;
-            System.out.println(finalUser);
-            Set<UserAuthority> customAuthorities = userCreateRequest
-                    .authorities()
-                    .stream()
+        // Add custom authorities if specified
+        if (userCreateRequest.authorities() != null && !userCreateRequest.authorities().isEmpty()) {
+            Set<UserAuthority> customAuthorities = userCreateRequest.authorities().stream()
                     .map(name -> {
-                        Authority authority = authorityRepository
-                                .findByName(name)
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Authority has not been found"));
+                        Authority authority = authorityRepository.findByName(name)
+                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                        "Authority not found: " + name));
                         UserAuthority userAuthority = new UserAuthority();
-                        userAuthority.setUser(finalUser);
+                        userAuthority.setUser(user);
                         userAuthority.setAuthority(authority);
                         return userAuthority;
                     })
@@ -91,9 +135,6 @@ public class UserServiceImpl implements UserService{
         }
 
         userAuthorityRepository.saveAll(user.getUserAuthorities());
-        gitLabServiceFein.createUser(user.getUsername() , user.getEmail(), user.getPassword());
-
-        emailVerificationTokenService.generate(user);
     }
     private void addDefaultUserAuthority(User user) {
         UserAuthority defaultUserAuthority = new UserAuthority();
@@ -128,36 +169,7 @@ public class UserServiceImpl implements UserService{
         user.getUserAuthorities().addAll(customAuthorities);
         userAuthorityRepository.saveAll(user.getUserAuthorities());
     }
-    @Override
-    public UserResponse createOAuth2User(String email, String name, String picture, String provider) {
-        User user = User.builder()
-                .uuid(UUID.randomUUID().toString())
-                .username(generateUsername(email))
-                .email(email)
-                .profileImage(picture)
-                .emailVerified(true)
-                .accountNonExpired(true)
-                .accountNonLocked(true)
-                .credentialsNonExpired(true)
-                .isEnabled(true)
-                .build();
 
-        user = userRepository.save(user);
-
-        // Add default USER authority
-        addDefaultUserAuthority(user);
-
-        // Add OAuth2 specific authority
-        UserAuthority oauth2Authority = new UserAuthority();
-        oauth2Authority.setUser(user);
-        oauth2Authority.setAuthority(authorityRepository.findByName("OAUTH2_USER")
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "OAUTH2_USER authority not found")));
-
-        user.getUserAuthorities().add(oauth2Authority);
-        userAuthorityRepository.saveAll(user.getUserAuthorities());
-
-        return userMapper.toUserResponse(user);
-    }
 
     @Override
     public UserResponse findByEmail(String email) {
@@ -286,19 +298,21 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public void existsByUsername(String username) {
+    public boolean existsByUsername(String username) {
 
         if (userRepository.existsByUsername(username)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists!");
         }
+        return false;
     }
 
     @Override
-    public void existsByEmail(String email) {
+    public boolean existsByEmail(String email) {
         // check if email already exists (validation)
         if (userRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists!");
         }
+        return false;
     }
 
     @Override
@@ -331,24 +345,42 @@ public class UserServiceImpl implements UserService{
     }
 
 
-    // Add a new method specifically for Google users
-    @Override
-    public UserResponse createGoogleUser(DefaultOidcUser oidcUser) {
-        // Check if user already exists
-        try {
-            return findByEmail(oidcUser.getEmail());
-        } catch (ResponseStatusException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND) {
-                throw e;
-            }
+
+    // Add a method to generate unique username
+    private String generateUniqueUsername(String baseUsername, String provider) {
+        String username = baseUsername + "." + provider.toLowerCase();
+
+        // Check if username exists
+        if (!userRepository.existsByUsername(username)) {
+            return username;
         }
 
-        // Create new user if not found
+        // If exists, add number suffix until we find a unique one
+        int counter = 1;
+        String newUsername;
+        do {
+            newUsername = username + counter;
+            counter++;
+        } while (userRepository.existsByUsername(newUsername));
+
+        return newUsername;
+    }
+
+    @Transactional
+    @Override
+    public UserResponse createGitLabUser(OAuth2User oauth2User) {
+        String gitlabId = oauth2User.getAttribute("sub");
+        String email = oauth2User.getAttribute("email");
+        String name = oauth2User.getAttribute("name");
+        String preferredUsername = oauth2User.getAttribute("preferred_username");
+
+        log.info("Creating GitLab user with ID: {}", gitlabId);
+
         User user = User.builder()
                 .uuid(UUID.randomUUID().toString())
-                .username(generateUsername(oidcUser.getEmail()))
-                .email(oidcUser.getEmail())
-                .profileImage(oidcUser.getPicture())
+                .username(gitlabId)
+                .email(oauth2User.getAttribute("name") + "@gitlab.com")
+                .profileImage(oauth2User.getAttribute("picture"))
                 .emailVerified(true)
                 .accountNonExpired(true)
                 .accountNonLocked(true)
@@ -357,25 +389,76 @@ public class UserServiceImpl implements UserService{
                 .build();
 
         user = userRepository.save(user);
-        addDefaultUserAuthority(user);
 
-        // Add OAuth2 specific authority
-        Set<String> oauthAuthorities = Set.of("OAUTH2_USER");
-        addCustomAuthorities(user, oauthAuthorities);
+        UserAuthority defaultUserAuthority = new UserAuthority();
+        defaultUserAuthority.setUser(user);
+        defaultUserAuthority.setAuthority(authorityRepository.AUTH_USER());
+
+        user.setUserAuthorities(new HashSet<>());
+        user.getUserAuthorities().add(defaultUserAuthority);
+
+        userAuthorityRepository.saveAll(user.getUserAuthorities());
+
+        log.info("Successfully created GitLab user with ID: {}, email: {}", gitlabId, email);
+
+        return userMapper.toUserResponse(user);
+    }
+    @Override
+    public UserResponse createGoogleUser(DefaultOidcUser oidcUser) {
+        return null;
+    }
+
+    @Transactional
+    @Override
+    public UserResponse createGoogleUser(OAuth2User oauth2User) {
+        String googleId = oauth2User.getAttribute("sub");
+        String email = oauth2User.getAttribute("email");
+        log.info("Creating Google user with ID: {}", googleId);
+        log.info("Creating email user with ID: {}", email);
+
+        User user = User.builder()
+                .uuid(UUID.randomUUID().toString())
+                .username(email)  // Using Google ID as username like GitHub and GitLab
+                .email(oauth2User.getAttribute("email"))
+                .profileImage(oauth2User.getAttribute("picture"))
+                .emailVerified(true)
+                .accountNonExpired(true)
+                .accountNonLocked(true)
+                .credentialsNonExpired(true)
+                .isEnabled(true)
+                .build();
+
+        user = userRepository.save(user);
+
+        // Set up default authority
+        UserAuthority defaultUserAuthority = new UserAuthority();
+        defaultUserAuthority.setUser(user);
+        defaultUserAuthority.setAuthority(authorityRepository.AUTH_USER());
+
+        user.setUserAuthorities(new HashSet<>());
+        user.getUserAuthorities().add(defaultUserAuthority);
+
+        userAuthorityRepository.saveAll(user.getUserAuthorities());
+
+        log.info("Created Google user with username: {}", googleId);
 
         return userMapper.toUserResponse(user);
     }
 
-
     @Override
-    public UserResponse createGithubUser(OAuth2User oAuth2User) {
+    @Transactional
+    public UserResponse createGithubUser(OAuth2User oauth2User) {
+        String githubId = oauth2User.getAttribute("id").toString();
+        String githubLogin = oauth2User.getAttribute("login");
+
+        // Create username in format: login.githubID (e.g., MuyleangIng.116934056)
+        String finalUsername = githubLogin + "." + githubId;
+
         User user = User.builder()
                 .uuid(UUID.randomUUID().toString())
-                .username(oAuth2User.getAttribute("login"))
-                .email(oAuth2User.getAttribute("login") + "@github.com")
-//                .fullName(oAuth2User.getAttribute("name"))
-                .profileImage(oAuth2User.getAttribute("avatar_url")) // Use Google profile picture
-//                .coverImage("users/cover.png")
+                .username(githubId)
+                .email(oauth2User.getAttribute("login") + "@github.com")
+                .profileImage(oauth2User.getAttribute("avatar_url"))
                 .emailVerified(true)
                 .accountNonExpired(true)
                 .accountNonLocked(true)
@@ -395,13 +478,35 @@ public class UserServiceImpl implements UserService{
 
         userAuthorityRepository.saveAll(user.getUserAuthorities());
 
+        // You might want to log the creation for debugging
+        log.info("Created GitHub user with username: {}", finalUsername);
+
         return userMapper.toUserResponse(user);
     }
-    // Helper method to generate username from email
+    // Helper method to add default authority
+    private void addDefaultAuthority(User user) {
+        UserAuthority defaultUserAuthority = new UserAuthority();
+        defaultUserAuthority.setUser(user);
+        defaultUserAuthority.setAuthority(authorityRepository.AUTH_USER());
+
+        user.setUserAuthorities(new HashSet<>());
+        user.getUserAuthorities().add(defaultUserAuthority);
+
+        userAuthorityRepository.saveAll(user.getUserAuthorities());
+    }
+
+    // Helper method to generate base username from email
     private String generateUsername(String email) {
-        // Remove domain part and special characters
         return email.split("@")[0]
                 .replaceAll("[^a-zA-Z0-9]", "")
                 .toLowerCase();
+    }
+    @Override
+    public UserResponse getAuthenticatedUser(Authentication authentication) {
+
+        if(authentication!=null){
+            return findByUsername(authentication.getName());
+        }
+        return null;
     }
 }

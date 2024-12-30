@@ -47,7 +47,7 @@ public class User extends Auditable<String> {
     @Column(unique = true, length = 256)
     private String appleId;
 
-    @Column(length = 256)
+    @Column(name = "profile_image", columnDefinition = "TEXT")  // Changed to TEXT type
     private String profileImage;
 
 
