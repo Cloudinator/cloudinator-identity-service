@@ -117,7 +117,7 @@ public class SecurityConfig {
                         .invalidateHttpSession(true)  // Invalidate the session
                         .clearAuthentication(true)
                         .deleteCookies("access_token", "JSESSIONID")  // Clear the OAuth2 token and session cookie
-                        .logoutSuccessUrl("https://identity-service.cloudinator.cloud?logout=true")
+                        .logoutSuccessUrl("https://register.cloudinator.istad.co?logout=true")
                 )
                 .cors(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable);

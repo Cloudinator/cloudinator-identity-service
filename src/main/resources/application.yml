@@ -26,7 +26,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://identity-service.cloudinator.cloud
+          issuer-uri: http://register.cloudinator.istad.co
 eureka:
   instance:
     prefer-ip-address: true
@@ -34,7 +34,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://eureka.cloudinator.cloud/eureka/
+      defaultZone: http://34.87.156.153:8761/eureka/
 
 
 server:
