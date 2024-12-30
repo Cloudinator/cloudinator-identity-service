@@ -13,6 +13,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.server.ResponseStatusException;
 
 @Controller
@@ -33,7 +34,29 @@ public class LoginController {
         }
         return "login";
     }
+    @PostMapping("/clear-oauth-message")
+    @ResponseBody
+    public void clearOAuthMessage(HttpSession session) {
+        session.removeAttribute("oauthMessage");
+    }
 
+    @PostMapping("/clear-oauth-error")
+    @ResponseBody
+    public void clearOAuthError(HttpSession session) {
+        session.removeAttribute("oauthError");
+    }
+//    @GetMapping("/reset-password")
+//    public String showResetPasswordForm() {
+//        return "reset-password";
+//    }
+//
+//    @PostMapping("/reset-password")
+//    public String handleResetPassword(@RequestParam String email, Model model) {
+//        // TODO: Implement actual password reset logic here
+//        // For now, we'll just show a success message
+//        model.addAttribute("message", "If an account exists for " + email + ", we have sent a password reset link.");
+//        return "login";
+//    }
     @PostMapping("/login")
     public String handleLogin(@RequestParam String username,
                               @RequestParam String password,
