@@ -270,7 +270,7 @@
             const response = await fetch('/api/v1/auth/passcode-verification/token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username })
+                body: JSON.stringify({ usernameOrEmail:username })
             });
 
             const data = await response.json();

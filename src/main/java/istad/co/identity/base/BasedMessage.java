@@ -1,16 +1,20 @@
+// BasedMessage.java
 package istad.co.identity.base;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class BasedMessage {
-
     private String message;
+    private Object data;
 
+    // Constructor for message-only responses
+    public BasedMessage(String message) {
+        this.message = message;
+        this.data = null;
+    }
 }

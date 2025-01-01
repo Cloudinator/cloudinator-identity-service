@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/auth/passcode-verification")
 @RequiredArgsConstructor
@@ -26,8 +29,14 @@ public class PasscodeController {
 
 
     @PostMapping("/token")
-    BasedMessage resendToken(@Valid @RequestBody PasscodeVerifyResendRequest passcodeVerifyResendRequest) {
-        passcodeResetService.resend(passcodeVerifyResendRequest);
-        return new BasedMessage("New confirmation link has been sent, check your emails");
+    public BasedMessage resendToken(@Valid @RequestBody PasscodeVerifyResendRequest passcodeVerifyResendRequest) {
+        String username = passcodeResetService.resend(passcodeVerifyResendRequest);
+
+        // Create response data
+        Map<String, String> responseData = new HashMap<>();
+        responseData.put("username", username);
+
+        // Use the constructor with both parameters
+        return new BasedMessage("New confirmation link has been sent, check your emails", responseData);
     }
 }

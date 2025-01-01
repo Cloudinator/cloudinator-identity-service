@@ -21,6 +21,7 @@ import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +32,28 @@ public class PasscodeServiceImpl implements PasscodeService {
     private final PasscodeRepository passcodeRepository;
     private final JavaMailSender javaMailSender;
     private final TemplateEngine templateEngine;
+
+    /**
+     * Find user by username or email with enabled status
+     * @param usernameOrEmail username or email to search
+     * @return User object
+     */
+    private User findUserByUsernameOrEmail(String usernameOrEmail) {
+        // First try username
+        Optional<User> userByUsername = userRepository.findByUsernameAndIsEnabledTrue(usernameOrEmail);
+        if (userByUsername.isPresent()) {
+            return userByUsername.get();
+        }
+
+        // Then try email
+        Optional<User> userByEmail = userRepository.findByEmail(usernameOrEmail);
+        if (userByEmail.isPresent() && userByEmail.get().getIsEnabled()) {
+            return userByEmail.get();
+        }
+
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                "User not found or not enabled");
+    }
 
     @Override
     @Transactional
@@ -59,20 +82,35 @@ public class PasscodeServiceImpl implements PasscodeService {
                 "Token does not belong to this user");
     }
 
-    @Override
-    @Transactional
-    public void resend(PasscodeVerifyResendRequest passcodeVerifyResendRequest) {
-        User foundUser = userRepository.findByUsernameAndIsEnabledTrue(passcodeVerifyResendRequest.username())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "User not found"));
+//    @Override
+//    @Transactional
+//    public void resend(PasscodeVerifyResendRequest passcodeVerifyResendRequest) {
+//        User foundUser = findUserByUsernameOrEmail(passcodeVerifyResendRequest.usernameOrEmail());
+//
+//        // Clean up old tokens
+//        passcodeRepository.deleteByUser(foundUser);
+//
+//        // Generate new token
+//        generate(foundUser);
+//
+//        log.info("Resent verification code to user: {}", foundUser.getUsername());
+//    }
+@Override
+@Transactional
+public String resend(PasscodeVerifyResendRequest passcodeVerifyResendRequest) {
+    User foundUser = findUserByUsernameOrEmail(passcodeVerifyResendRequest.usernameOrEmail());
 
-        // Clean up old tokens
-        passcodeRepository.deleteByUser(foundUser);
+    // Clean up old tokens
+    passcodeRepository.deleteByUser(foundUser);
 
-        // Generate new token
-        generate(foundUser);
-    }
+    // Generate new token
+    generate(foundUser);
 
+    log.info("Resent verification code to user: {}", foundUser.getUsername());
+
+    // Return the username
+    return foundUser.getUsername();
+}
     @Override
     @Transactional
     public void generate(User user) {
@@ -82,28 +120,32 @@ public class PasscodeServiceImpl implements PasscodeService {
         passcodeVerification.setToken(RandomUtil.generate6Digits());
         passcodeVerification.setExpiryDateTime(expiration);
         passcodeVerification.setUser(user);
-        // Initialize isValidated to false
         passcodeVerification.setIsValidated(false);
 
         passcodeRepository.save(passcodeVerification);
 
+        sendVerificationEmail(user, passcodeVerification.getToken());
+    }
+
+    private void sendVerificationEmail(User user, String token) {
         MimeMessage mimeMessage = javaMailSender.createMimeMessage();
         try {
             MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(mimeMessage);
 
             Context context = new Context();
-            context.setVariable("verificationCode", passcodeVerification.getToken());
+            context.setVariable("verificationCode", token);
+            context.setVariable("username", user.getUsername());
 
-            log.info("Generated verification code: {}", passcodeVerification.getToken());
+            log.info("Generated verification code for user: {}", user.getUsername());
 
             String emailContent = templateEngine.process("email/passcode.html", context);
-            log.info("Rendered email content: {}", emailContent);
 
             mimeMessageHelper.setTo(user.getEmail());
             mimeMessageHelper.setSubject("Password Reset Verification Code");
             mimeMessageHelper.setText(emailContent, true);
 
             javaMailSender.send(mimeMessage);
+            log.info("Sent verification email to: {}", user.getEmail());
         } catch (MessagingException e) {
             log.error("Failed to send email: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,

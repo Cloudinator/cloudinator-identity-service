@@ -30,7 +30,7 @@ public interface PasscodeService {
      * @since 1.0 (2024)
      */
 
-    void resend(PasscodeVerifyResendRequest passcodeVerifyResendRequest);
+    String resend(PasscodeVerifyResendRequest passcodeVerifyResendRequest);
 
     /**
      * generate and send OTG passcode to user
