@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -366,43 +367,96 @@ public class UserServiceImpl implements UserService{
         return newUsername;
     }
 
-    @Transactional
-    @Override
-    public UserResponse createGitLabUser(OAuth2User oauth2User) {
-        String gitlabId = oauth2User.getAttribute("sub");
-        String email = oauth2User.getAttribute("email");
-        String name = oauth2User.getAttribute("name");
-        String preferredUsername = oauth2User.getAttribute("preferred_username");
+//    @Transactional
+//    @Override
+//    public UserResponse createGitLabUser(OAuth2User oauth2User) {
+//        String gitlabId = oauth2User.getAttribute("sub");
+//        String email = oauth2User.getAttribute("email");
+//        String name = oauth2User.getAttribute("name");
+//        String preferredUsername = oauth2User.getAttribute("preferred_username");
+//
+//        log.info("Creating GitLab user with ID: {}", gitlabId);
+//
+//        User user = User.builder()
+//                .uuid(UUID.randomUUID().toString())
+//                .username(gitlabId)
+//                .email(oauth2User.getAttribute("name") + "@gitlab.com")
+//                .profileImage(oauth2User.getAttribute("picture"))
+//                .emailVerified(true)
+//                .accountNonExpired(true)
+//                .accountNonLocked(true)
+//                .credentialsNonExpired(true)
+//                .isEnabled(true)
+//                .build();
+//
+//        user = userRepository.save(user);
+//        gitLabServiceFein.createUser(user.getUsername(), user.getEmail(), user.getPassword());
+//
+//        UserAuthority defaultUserAuthority = new UserAuthority();
+//        defaultUserAuthority.setUser(user);
+//        defaultUserAuthority.setAuthority(authorityRepository.AUTH_USER());
+//
+//        user.setUserAuthorities(new HashSet<>());
+//        user.getUserAuthorities().add(defaultUserAuthority);
+//
+//        userAuthorityRepository.saveAll(user.getUserAuthorities());
+//
+//        log.info("Successfully created GitLab user with ID: {}, email: {}", gitlabId, email);
+//
+//        return userMapper.toUserResponse(user);
+//    }
+@Transactional
+@Override
+public UserResponse createGitLabUser(OAuth2User oauth2User) {
+    String gitlabId = oauth2User.getAttribute("sub");
+    String preferredUsername = oauth2User.getAttribute("preferred_username");
+    String name = oauth2User.getAttribute("name");
+    Random random = new Random();
+    int randomNumber = random.nextInt(1000); // Generates a random number between 0 and 999
 
-        log.info("Creating GitLab user with ID: {}", gitlabId);
+    String username = preferredUsername + randomNumber + "gitcloudinator";
+    String email = preferredUsername + randomNumber + "@git.cloudinator";
 
-        User user = User.builder()
-                .uuid(UUID.randomUUID().toString())
-                .username(gitlabId)
-                .email(oauth2User.getAttribute("name") + "@gitlab.com")
-                .profileImage(oauth2User.getAttribute("picture"))
-                .emailVerified(true)
-                .accountNonExpired(true)
-                .accountNonLocked(true)
-                .credentialsNonExpired(true)
-                .isEnabled(true)
-                .build();
+    log.info("Creating GitLab user with ID: {}", gitlabId);
+    log.info("Using username: {} and email: {}", username, email);
 
-        user = userRepository.save(user);
+    // Generate random password
+    String password = "Qwerty@2025Git";
 
-        UserAuthority defaultUserAuthority = new UserAuthority();
-        defaultUserAuthority.setUser(user);
-        defaultUserAuthority.setAuthority(authorityRepository.AUTH_USER());
+    User user = User.builder()
+            .uuid(UUID.randomUUID().toString())
+            .username(gitlabId)  // Use customized username
+            .email(email)      // Use customized email
+            .profileImage(oauth2User.getAttribute("picture"))
+            .emailVerified(true)
+            .accountNonExpired(true)
+            .accountNonLocked(true)
+            .credentialsNonExpired(true)
+            .isEnabled(true)
+            .build();
 
-        user.setUserAuthorities(new HashSet<>());
-        user.getUserAuthorities().add(defaultUserAuthority);
+    user = userRepository.save(user);
 
-        userAuthorityRepository.saveAll(user.getUserAuthorities());
-
-        log.info("Successfully created GitLab user with ID: {}, email: {}", gitlabId, email);
-
-        return userMapper.toUserResponse(user);
+    try {
+        gitLabServiceFein.createUser(username, email, password);
+    } catch (Exception e) {
+        log.error("Failed to create GitLab service user: {}", e.getMessage());
     }
+
+    // Add authorities
+    UserAuthority defaultUserAuthority = new UserAuthority();
+    defaultUserAuthority.setUser(user);
+    defaultUserAuthority.setAuthority(authorityRepository.AUTH_USER());
+
+    user.setUserAuthorities(new HashSet<>());
+    user.getUserAuthorities().add(defaultUserAuthority);
+
+    userAuthorityRepository.saveAll(user.getUserAuthorities());
+
+    log.info("Successfully created GitLab user with ID: {}, email: {}", gitlabId, email);
+
+    return userMapper.toUserResponse(user);
+}
     @Override
     public UserResponse createGoogleUser(DefaultOidcUser oidcUser) {
         return null;
@@ -413,10 +467,15 @@ public class UserServiceImpl implements UserService{
     public UserResponse createGoogleUser(OAuth2User oauth2User) {
         String googleId = oauth2User.getAttribute("sub");
         String email = oauth2User.getAttribute("email");
-        log.info("Creating Google user with ID: {}", googleId);
+        String name = oauth2User.getAttribute("name");
+        String password = "Qwerty@2025Git";
+        String trimmedIdentifier = googleId+email;
+        String username = trimmedIdentifier.split("@")[0];
+
+        log.info("Creating username user with ID: {}", username);
         log.info("Creating email user with ID: {}", email);
 
-        User user = User.builder()
+        User user = User. builder()
                 .uuid(UUID.randomUUID().toString())
                 .username(email)  // Using Google ID as username like GitHub and GitLab
                 .email(oauth2User.getAttribute("email"))
@@ -429,7 +488,11 @@ public class UserServiceImpl implements UserService{
                 .build();
 
         user = userRepository.save(user);
-
+        try {
+            gitLabServiceFein.createUser(username, email, password);
+        } catch (Exception e) {
+            log.error("Failed to create GitLab service user: {}", e.getMessage());
+        }
         // Set up default authority
         UserAuthority defaultUserAuthority = new UserAuthority();
         defaultUserAuthority.setUser(user);
@@ -450,10 +513,15 @@ public class UserServiceImpl implements UserService{
     public UserResponse createGithubUser(OAuth2User oauth2User) {
         String githubId = oauth2User.getAttribute("id").toString();
         String githubLogin = oauth2User.getAttribute("login");
+        Random random = new Random();
+        int randomNumber = random.nextInt(1000);
+        String username = githubLogin + githubId + "gitcloudinator";
+        String email = githubLogin + randomNumber + "@git.cloudinator";
 
-        // Create username in format: login.githubID (e.g., MuyleangIng.116934056)
+        String password = "Qwerty@2025Git";
+
         String finalUsername = githubLogin + "." + githubId;
-
+        log.info("Creating Github user with ID: {}", oauth2User);
         User user = User.builder()
                 .uuid(UUID.randomUUID().toString())
                 .username(githubId)
@@ -467,6 +535,11 @@ public class UserServiceImpl implements UserService{
                 .build();
 
         user = userRepository.save(user);
+        try {
+            gitLabServiceFein.createUser(username, email, password);
+        } catch (Exception e) {
+            log.error("Failed to create Github service user: {}", e.getMessage());
+        }
 
         // Set up default authority - USER
         UserAuthority defaultUserAuthority = new UserAuthority();
@@ -477,6 +550,7 @@ public class UserServiceImpl implements UserService{
         user.getUserAuthorities().add(defaultUserAuthority);
 
         userAuthorityRepository.saveAll(user.getUserAuthorities());
+        log.info("Creating Github user with ID: {}", oauth2User);
 
         // You might want to log the creation for debugging
         log.info("Created GitHub user with username: {}", finalUsername);
