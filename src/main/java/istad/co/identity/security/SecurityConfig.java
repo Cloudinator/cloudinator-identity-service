@@ -22,8 +22,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
-import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
@@ -259,25 +257,4 @@ public class SecurityConfig {
                 .claim("username", user.getUser().getUsername())
                 .claim("email", user.getUser().getEmail());
     }
-
-//    private void addGoogleUserClaims(JwtEncodingContext context, DefaultOidcUser user) {
-//        String email = user.getEmail();
-//        userRepository.findByEmail(email)
-//                .ifPresentOrElse(
-//                        userEntity -> {
-//                            context.getClaims()
-//                                    .claim("userUuid", userEntity.getUuid())
-//                                    .claim("username", userEntity.getUsername())
-//                                    .claim("profileImage", userEntity.getProfileImage())
-//                                    .claim("email", userEntity.getEmail());
-//                        },
-//                        () -> {
-//                            context.getClaims()
-//                                    .claim("email", email)
-//                                    .claim("fullName", user.getFullName());
-//                        }
-//                );
-//    }
-
-
 }
