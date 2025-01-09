@@ -2,9 +2,9 @@ spring:
   application:
     name: identity
   datasource:
-    url: jdbc:postgresql://202.178.125.77:5433/test3
-    username: surveybox
-    password: Root@123
+    url: jdbc:postgresql://34.126.183.52:3242/production
+    username: springdb
+    password: ITE2@2024
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,7 +26,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8888
+          issuer-uri: https://oauth2.cloudinator.istad.co
       client:
         registration:
           gitlab:
@@ -75,11 +75,20 @@ spring:
             user-name-attribute: email
 
 server:
-  port: 8888
+  port: 8080
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://35.197.142.89:30001/eureka/
 
 logging:
   level:
     org:
       springframework:
-        security: DEBUG
-    org.springframework.security.oauth2: DEBUG
+        security: INFO
+    org.springframework.security.oauth2: INFO

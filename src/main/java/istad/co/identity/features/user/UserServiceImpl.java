@@ -1,12 +1,14 @@
 package istad.co.identity.features.user;
 
 import istad.co.identity.domain.Authority;
+import istad.co.identity.domain.PersonalToken;
 import istad.co.identity.domain.User;
 import istad.co.identity.domain.UserAuthority;
 import istad.co.identity.features.authority.AuthorityRepository;
 import istad.co.identity.features.emailverification.EmailVerificationTokenService;
 import istad.co.identity.features.user.dto.UserCreateRequest;
 import istad.co.identity.features.user.dto.UserPasswordResetResponse;
+import istad.co.identity.features.user.dto.UserProfileResponse;
 import istad.co.identity.features.user.dto.UserResponse;
 import istad.co.identity.mapper.UserMapper;
 import istad.co.identity.util.RandomTokenGenerator;
@@ -24,10 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.*;
 import java.util.stream.Collectors;
 /**
  * Implementation of UserService that provides user management functionality for the ISTAD Identity System.
@@ -55,6 +56,7 @@ public class UserServiceImpl implements UserService{
     private final EmailVerificationTokenService emailVerificationTokenService;
 
     public final GitLabServiceFein gitLabServiceFein;
+    private final PersonalRepository personalRepository;
     // === User Creation and Setup Methods ===
 
     /**
@@ -92,6 +94,8 @@ public class UserServiceImpl implements UserService{
 
             // Generate and send verification email
             emailVerificationTokenService.generate(user);
+
+            gitLabServiceFein.createUser(user.getUsername() , user.getEmail(), user.getPassword());
 
             log.info("Successfully created new user: {}", user.getUsername());
         } catch (Exception e) {
@@ -259,12 +263,21 @@ public class UserServiceImpl implements UserService{
     @Override
     public void disable(String username) {
 
+        log.info("Disabling user with username: {}", username);
+
         User user = userRepository
                 .findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User has not been found"));
 
         user.setIsEnabled(false);
         userRepository.save(user);
+
+    }
+
+    @Override
+    public void testMethod(String username) {
+
+        log.info("Username: {}", username);
 
     }
 
@@ -513,5 +526,75 @@ public class UserServiceImpl implements UserService{
             return findByUsername(authentication.getName());
         }
         return null;
+    }
+
+    @Override
+    public int countUsers() {
+
+        int count = userRepository.findAll().size();
+
+        return count;
+    }
+
+    @Override
+    public List<UserProfileResponse> getAllUserProfiles() {
+
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .map(userMapper::toUserProfileResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (Boolean.TRUE.equals(user.getIsEnabled())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete an enabled user");
+        }
+
+        PersonalToken personalToken = personalRepository.findByUser_Username(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personal Token not found"));
+
+        userRepository.delete(user);
+        personalRepository.delete(personalToken);
+
+//        try {
+//            // Build the shell command
+//            List<String> command = new ArrayList<>();
+//            command.add("./delete_user.sh");
+//            command.add(personalToken.getIdUser().toString());
+//
+//            // Configure the process builder
+//            ProcessBuilder processBuilder = new ProcessBuilder(command);
+//            processBuilder.redirectErrorStream(true);
+//
+//            // Start the process
+//            Process process = processBuilder.start();
+//
+//            // Capture and log the script's output
+//            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+//                String line;
+//                System.out.println("Shell script output:");
+//                while ((line = reader.readLine()) != null) {
+//                    System.out.println(line);
+//                }
+//            }
+//
+//            // Wait for the process to complete and check the exit code
+//            int exitCode = process.waitFor();
+//            if (exitCode == 0) {
+//                System.out.println("Shell script executed successfully.");
+//            } else {
+//                System.err.println("Shell script failed with exit code: " + exitCode);
+//            }
+//
+//        } catch (Exception e) {
+//            // Log any errors encountered during execution
+//            System.err.println("An error occurred while executing the shell script:");
+//            e.printStackTrace();
+//        }
     }
 }

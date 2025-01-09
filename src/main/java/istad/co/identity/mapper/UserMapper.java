@@ -4,6 +4,7 @@ import istad.co.identity.domain.User;
 import istad.co.identity.features.auth.dto.GithubUser;
 import istad.co.identity.features.auth.dto.RegisterRequest;
 import istad.co.identity.features.user.dto.UserCreateRequest;
+import istad.co.identity.features.user.dto.UserProfileResponse;
 import istad.co.identity.features.user.dto.UserResponse;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
@@ -15,6 +16,8 @@ import java.util.List;
 public interface UserMapper {
 
     UserResponse toUserResponse(User user);
+
+    UserProfileResponse toUserProfileResponse(User user);
 
     List<UserResponse> toUserResponseList(List<User> users);
 

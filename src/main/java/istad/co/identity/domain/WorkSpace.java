@@ -22,7 +22,9 @@ public class WorkSpace {
     @Column(nullable = false, length = 64)
     private String name;
 
-    @ManyToOne
+    private Boolean isActive;
+
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 

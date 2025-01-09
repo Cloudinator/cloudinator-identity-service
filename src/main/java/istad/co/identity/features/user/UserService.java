@@ -3,12 +3,15 @@ package istad.co.identity.features.user;
 import istad.co.identity.domain.User;
 import istad.co.identity.features.user.dto.UserCreateRequest;
 import istad.co.identity.features.user.dto.UserPasswordResetResponse;
+import istad.co.identity.features.user.dto.UserProfileResponse;
 import istad.co.identity.features.user.dto.UserResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * Service interface for managing user operations in the ISTAD Identity System.
@@ -63,6 +66,9 @@ public interface UserService {
      * @param username the username of the account to disable
      */
     void disable(String username);
+
+
+    void testMethod(String username);
 
     /**
      * Retrieves a paginated list of users.
@@ -169,4 +175,27 @@ public interface UserService {
      * @return the authenticated user response or null if not authenticated
      */
     UserResponse getAuthenticatedUser(Authentication authentication);
+
+
+    /**
+     * Counts the number of users in the system.
+     *
+     * @return the number of users
+     */
+    int countUsers();
+
+    /**
+     * Retrieves a list of all user profiles.
+     *
+     * @return a list of user profile responses
+     */
+    List<UserProfileResponse> getAllUserProfiles();
+
+    /**
+     * Deletes a user by their username.
+     *
+     * @param username the username of the user to delete
+     */
+    void deleteByUsername(String username);
+
 }

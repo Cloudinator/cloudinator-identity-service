@@ -2,9 +2,11 @@ package istad.co.identity.features.user;
 
 import istad.co.identity.features.user.dto.UserCreateRequest;
 import istad.co.identity.features.user.dto.UserPasswordResetResponse;
+import istad.co.identity.features.user.dto.UserProfileResponse;
 import istad.co.identity.features.user.dto.UserResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,8 +14,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -38,6 +42,12 @@ public class UserController {
         return ResponseEntity.ok(userService.getAuthenticatedUser(authentication));
     }
 
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/count")
+    public ResponseEntity<Integer> countUsers() {
+        return ResponseEntity.ok(userService.countUsers());
+    }
+
 
 
     //    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
@@ -46,22 +56,29 @@ public class UserController {
         return userService.resetPassword(username);
     }
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PutMapping("/{username}/disable")
-    void disable(@PathVariable String username) {
+    @PostMapping("/disable/{username}")
+    public ResponseEntity<String> disable(@PathVariable String username) {
+
+        log.info("Disabling user: {}", username);
+
         userService.disable(username);
+
+        return ResponseEntity.ok("User disabled successfully");
     }
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PutMapping("/{username}/enable")
-    void enable(@PathVariable String username) {
+    @PostMapping("/enable/{username}")
+    public ResponseEntity<String> enable(@PathVariable String username) {
         userService.enable(username);
+
+        return ResponseEntity.ok("User enabled successfully");
     }
 
 
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
+//    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @GetMapping
     Page<UserResponse> findList(@RequestParam(required = false, defaultValue = "0") int pageNumber,
                                 @RequestParam(required = false, defaultValue = "25") int pageSize) {
@@ -75,5 +92,24 @@ public class UserController {
         return userService.findByUsername(username);
     }
 
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/get-all-users-details")
+    public ResponseEntity<List<UserProfileResponse>> getAllUsersDetails() {
+        return ResponseEntity.ok(userService.getAllUserProfiles());
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/test-method/{username}")
+    public ResponseEntity<String> testMethod(@PathVariable String username) {
+        userService.testMethod(username);
+        return ResponseEntity.ok("Test method executed successfully");
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/{username}")
+    public ResponseEntity<String> deleteUser(@PathVariable String username) {
+        userService.deleteByUsername(username);
+        return ResponseEntity.ok("User deleted successfully");
+    }
 
 }
