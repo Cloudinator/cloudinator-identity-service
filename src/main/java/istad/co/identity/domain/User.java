@@ -50,6 +50,17 @@ public class User extends Auditable<String> {
     @Column(name = "profile_image", columnDefinition = "TEXT")  // Changed to TEXT type
     private String profileImage;
 
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    @Column(name = "gender")
+    private String gender;
 
     @Column(length = 256)
     private String ipAddress;

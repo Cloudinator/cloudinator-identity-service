@@ -8,6 +8,12 @@ public record UserResponse(
         String username,
         String email,
         String profileImage,
-        boolean emailVerified
+        boolean emailVerified,
+        String firstName,
+        String lastName,
+        String dateOfBirth,
+        String gender,
+        String phoneNumber
+
 ) {
 }

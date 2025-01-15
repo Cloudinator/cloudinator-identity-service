@@ -20,7 +20,7 @@ public class DatabaseService {
     private String uuid;
 
     @Column(nullable = false, length = 64)
-    private String username;
+    private String name;
 
     @Column(nullable = false, length = 64)
     private String password;
@@ -30,6 +30,18 @@ public class DatabaseService {
 
     @Column(nullable = false, length = 64)
     private String dbName;
+
+    @Column(nullable = false, length = 64)
+    private String dbType;
+
+    @Column(nullable = false)
+    String dbVersion;
+
+    @Column(nullable = false)
+    private String type;
+
+    @Column(nullable = false, length = 64)
+    private String subdomain;
 
     @ManyToOne
     @JoinColumn(name = "workspace_id", nullable = false)

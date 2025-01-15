@@ -29,10 +29,6 @@ public class MicroService {
     private String serviceName;
 
     @ManyToOne
-    @JoinColumn(name = "env_id", nullable = false)
-    private Environment env;
-
-    @ManyToOne
     @JoinColumn(name = "sub_workspace_id", nullable = false)
     private SubWorkspace subWorkspace;
 
