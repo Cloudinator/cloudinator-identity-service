@@ -73,10 +73,15 @@ public class UserServiceImpl implements UserService{
     @Override
     @Transactional
     public void createNewUser(UserCreateRequest userCreateRequest) {
+
         log.info("Creating new user with username: {}", userCreateRequest.username());
 
         // Validate unique constraints
         validateNewUser(userCreateRequest);
+
+        String password = "Qwerty@2025Git";
+
+
 
         try {
             // Create user
@@ -84,7 +89,13 @@ public class UserServiceImpl implements UserService{
             setupNewUser(user, userCreateRequest);
 
             // Save user
-            user = userRepository.save(user);
+            userRepository.save(user);
+
+            User user1 = userRepository.findByUsername(userCreateRequest.username()).get();
+
+            log.info("User testing: {}", user1.getUsername());
+
+            //gitLabServiceFein.createUser(user1.getUsername() , user1.getEmail(), password);
 
             // Add authorities
             addUserAuthorities(user, userCreateRequest);
@@ -95,7 +106,6 @@ public class UserServiceImpl implements UserService{
             // Generate and send verification email
             emailVerificationTokenService.generate(user);
 
-            gitLabServiceFein.createUser(user.getUsername() , user.getEmail(), user.getPassword());
 
             log.info("Successfully created new user: {}", user.getUsername());
         } catch (Exception e) {
@@ -360,7 +370,9 @@ public class UserServiceImpl implements UserService{
     public void verifyEmail(User user) {
         user.setEmailVerified(true);
 
-        gitLabServiceFein.createUser(user.getUsername() , user.getEmail(), user.getPassword());
+        String password = "Qwerty@2025Git";
+
+        gitLabServiceFein.createUser(user.getUsername() , user.getEmail(), password);
 
         userRepository.save(user);
     }
@@ -415,11 +427,12 @@ public class UserServiceImpl implements UserService{
 
         user = userRepository.save(user);
 
-        try {
-            gitLabServiceFein.createUser(username, email, password);
-        } catch (Exception e) {
-            log.error("Failed to create GitLab service user: {}", e.getMessage());
-        }
+        gitLabServiceFein.createUser(gitlabId, email, password);
+//        try {
+//
+//        } catch (Exception e) {
+//            log.error("Failed to create GitLab service user: {}", e.getMessage());
+//        }
 
         addDefaultUserAuthority(user);
 
@@ -448,7 +461,7 @@ public class UserServiceImpl implements UserService{
 
         User user = User.builder()
                 .uuid(UUID.randomUUID().toString())
-                .username(email)
+                .username(username)
                 .email(oauth2User.getAttribute("email"))
                 .profileImage(oauth2User.getAttribute("picture"))
                 .emailVerified(true)
@@ -459,11 +472,13 @@ public class UserServiceImpl implements UserService{
                 .build();
 
         user = userRepository.save(user);
-        try {
-            gitLabServiceFein.createUser(username, email, password);
-        } catch (Exception e) {
-            log.error("Failed to create GitLab service user: {}", e.getMessage());
-        }
+
+        gitLabServiceFein.createUser(username, email, password);
+//        try {
+//            gitLabServiceFein.createUser(username, email, password);
+//        } catch (Exception e) {
+//            log.error("Failed to create GitLab service user: {}", e.getMessage());
+//        }
 
         addDefaultUserAuthority(user);
 
@@ -506,7 +521,7 @@ public class UserServiceImpl implements UserService{
 
         user = userRepository.save(user);
         try {
-            gitLabServiceFein.createUser(username, email, password);
+            gitLabServiceFein.createUser(githubId, email, password);
         } catch (Exception e) {
             log.error("Failed to create Github service user: {}", e.getMessage());
         }

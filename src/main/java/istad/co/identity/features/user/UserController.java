@@ -25,13 +25,9 @@ public class UserController {
 
     private final UserService userService;
 
-    private final GitLabServiceFein gitLabServiceFein;
-
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
     void createNew(@Valid @RequestBody UserCreateRequest userCreateRequest) {
-
-        gitLabServiceFein.createUser(userCreateRequest.username() , userCreateRequest.email(), userCreateRequest.password());
 
         userService.createNewUser(userCreateRequest);
     }

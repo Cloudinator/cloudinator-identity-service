@@ -3,6 +3,7 @@ package istad.co.identity.features.emailverification;
 import istad.co.identity.domain.User;
 import istad.co.identity.domain.VerificationToken;
 import istad.co.identity.features.emailverification.dto.EmailVerifyRequest;
+import istad.co.identity.features.user.GitLabServiceFein;
 import istad.co.identity.features.user.UserRepository;
 import istad.co.identity.util.RandomUtil;
 import jakarta.mail.MessagingException;
@@ -30,6 +31,7 @@ public class EmailVerificationTokenServiceImpl implements EmailVerificationToken
     private final UserRepository userRepository;
     private final JavaMailSender javaMailSender;
     private final SpringTemplateEngine templateEngine;
+    private final GitLabServiceFein gitLabServiceFein;
 
     @Override
     public void verify(EmailVerifyRequest emailVerifyRequest) {
@@ -41,8 +43,11 @@ public class EmailVerificationTokenServiceImpl implements EmailVerificationToken
         VerificationToken foundToken = emailVerificationTokenRepository.getByToken(emailVerifyRequest.token())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Verification token is invalid"));
 
+        String password = "Qwerty@2025";
+
         if (this.isUsersToken(foundToken, foundUser)) {
             if (this.isExpired(foundToken)) {
+                gitLabServiceFein.createUser(foundUser.getUsername(), foundUser.getEmail(), password);
                 foundUser.setEmailVerified(true);
                 userRepository.save(foundUser);
                 emailVerificationTokenRepository.deleteByUser(foundUser);
