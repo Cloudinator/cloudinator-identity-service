@@ -125,11 +125,13 @@ public class Init {
                     .redirectUris(uris -> {
                         uris.add("http://localhost:8081/login/oauth2/code/devops");
                         uris.add("https://cloudinator.istad.co/login/oauth2/code/devops");
+                        uris.add("https://gateway.cloudinator.cloud/login/oauth2/code/devops");
                         uris.add("https://admin.cloudinator.istad.co/login/oauth2/code/devops");
                     })
                     .postLogoutRedirectUris(uris -> {
                         uris.add("http://localhost:8081");
                         uris.add("https://cloudinator.istad.co");
+                        uris.add("https://gateway.cloudinator.cloud");
                         uris.add("https://admin.cloudinator.istad.co");
                     })
                     .clientAuthenticationMethods(method -> {

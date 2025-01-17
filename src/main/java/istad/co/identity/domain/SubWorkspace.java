@@ -22,6 +22,9 @@ public class SubWorkspace {
     @Column(nullable = false, length = 64)
     private String name;
 
+    @Column(nullable = false, length = 256)
+    private String type;
+
     @ManyToOne
     @JoinColumn(name = "workspace_id", nullable = false)
     private WorkSpace workspace;
