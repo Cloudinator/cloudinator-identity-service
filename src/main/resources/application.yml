@@ -86,6 +86,7 @@ eureka:
     service-url:
       defaultZone: https://eureka474.cloudinator.cloud/eureka/
 
+
 logging:
   level:
     org:
