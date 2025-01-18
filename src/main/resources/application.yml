@@ -84,7 +84,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: https://eureka.cloudinator.cloud/eureka/
+      defaultZone: https://eureka474.cloudinator.cloud/eureka/
 
 logging:
   level:
