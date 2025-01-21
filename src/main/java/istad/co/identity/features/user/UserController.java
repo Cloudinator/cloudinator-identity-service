@@ -1,15 +1,13 @@
 package istad.co.identity.features.user;
 
-import istad.co.identity.features.user.dto.UserCreateRequest;
-import istad.co.identity.features.user.dto.UserPasswordResetResponse;
-import istad.co.identity.features.user.dto.UserProfileResponse;
-import istad.co.identity.features.user.dto.UserResponse;
+import istad.co.identity.features.user.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -111,5 +109,29 @@ public class UserController {
         userService.deleteByUsername(username);
         return ResponseEntity.ok("User deleted successfully");
     }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/{username}/update-profile")
+    public ResponseEntity<UserProfileResponse> updateUserProfile(
+            @PathVariable String username,
+            @Valid @RequestBody UserProfileUpdateRequest updateRequest,
+            Authentication authentication) {
+
+        // Log the update request
+        log.info("Updating profile for user: {}", authentication.getName());
+
+        // Ensure the authenticated user can only update their own profile
+        if (!authentication.getName().equals(username)) {
+            throw new AccessDeniedException("You are not authorized to update this profile.");
+        }
+
+        // Call the service to update the user profile
+        UserProfileResponse updatedProfile = userService.updateUserProfile(authentication.getName(), updateRequest);
+
+        // Return the updated profile in the response
+        return ResponseEntity.ok(updatedProfile);
+    }
+
+
 
 }

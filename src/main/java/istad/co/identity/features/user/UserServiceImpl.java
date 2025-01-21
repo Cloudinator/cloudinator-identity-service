@@ -6,10 +6,7 @@ import istad.co.identity.domain.User;
 import istad.co.identity.domain.UserAuthority;
 import istad.co.identity.features.authority.AuthorityRepository;
 import istad.co.identity.features.emailverification.EmailVerificationTokenService;
-import istad.co.identity.features.user.dto.UserCreateRequest;
-import istad.co.identity.features.user.dto.UserPasswordResetResponse;
-import istad.co.identity.features.user.dto.UserProfileResponse;
-import istad.co.identity.features.user.dto.UserResponse;
+import istad.co.identity.features.user.dto.*;
 import istad.co.identity.mapper.UserMapper;
 import istad.co.identity.util.RandomTokenGenerator;
 import lombok.RequiredArgsConstructor;
@@ -596,5 +593,27 @@ public class UserServiceImpl implements UserService{
 //            System.err.println("An error occurred while executing the shell script:");
 //            e.printStackTrace();
 //        }
+    }
+
+    @Override
+    public UserProfileResponse updateUserProfile(String username, UserProfileUpdateRequest updateRequest) {
+        // Fetch the user from the repository
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Update the user's profile information
+        user.setUsername(updateRequest.username());
+        user.setEmail(updateRequest.email());
+        user.setProfileImage(updateRequest.profileImage());
+
+        // Save the updated user
+        User updatedUser = userRepository.save(user);
+
+        // Map the updated user to a UserProfileResponse
+        return new UserProfileResponse(
+                updatedUser.getUsername(),
+                updatedUser.getEmail(),
+                updatedUser.getProfileImage()
+        );
     }
 }

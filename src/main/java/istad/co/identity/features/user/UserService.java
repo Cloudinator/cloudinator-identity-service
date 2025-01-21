@@ -1,10 +1,7 @@
 package istad.co.identity.features.user;
 
 import istad.co.identity.domain.User;
-import istad.co.identity.features.user.dto.UserCreateRequest;
-import istad.co.identity.features.user.dto.UserPasswordResetResponse;
-import istad.co.identity.features.user.dto.UserProfileResponse;
-import istad.co.identity.features.user.dto.UserResponse;
+import istad.co.identity.features.user.dto.*;
 import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
@@ -198,4 +195,5 @@ public interface UserService {
      */
     void deleteByUsername(String username);
 
+    UserProfileResponse updateUserProfile(String username, UserProfileUpdateRequest updateRequest);
 }
