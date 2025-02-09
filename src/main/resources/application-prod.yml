@@ -2,7 +2,7 @@ spring:
   application:
     name: identity
   datasource:
-    url: jdbc:postgresql://34.126.183.52:3242/production
+    url: jdbc:postgresql://165.232.161.197:3242/production
     username: springdb
     password: ITE2@2024
   jpa:
@@ -84,7 +84,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://35.197.142.89:30001/eureka/
+      defaultZone: http://68.183.183.12:30001/eureka/
 
 
 logging:

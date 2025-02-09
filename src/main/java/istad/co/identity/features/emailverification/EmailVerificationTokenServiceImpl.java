@@ -31,7 +31,6 @@ public class EmailVerificationTokenServiceImpl implements EmailVerificationToken
     private final UserRepository userRepository;
     private final JavaMailSender javaMailSender;
     private final SpringTemplateEngine templateEngine;
-    private final GitLabServiceFein gitLabServiceFein;
 
     @Override
     public void verify(EmailVerifyRequest emailVerifyRequest) {
@@ -47,7 +46,7 @@ public class EmailVerificationTokenServiceImpl implements EmailVerificationToken
 
         if (this.isUsersToken(foundToken, foundUser)) {
             if (this.isExpired(foundToken)) {
-                gitLabServiceFein.createUser(foundUser.getUsername(), foundUser.getEmail(), password);
+                //gitLabServiceFein.createUser(foundUser.getUsername(), foundUser.getEmail(), password);
                 foundUser.setEmailVerified(true);
                 userRepository.save(foundUser);
                 emailVerificationTokenRepository.deleteByUser(foundUser);
